@@ -20,6 +20,30 @@ This file is a persistent guide for any coding agent working in this repository.
    - Keep logic deterministic when possible; avoid nondeterministic timestamps unless gated by determinism settings.
    - After changes, run the existing eval task and record results.
 
+## When to use the desktop Copilot app (external)
+
+This repo is typically worked on in **VS Code Agent Mode** (local read/write + tasks). The standalone **Microsoft Copilot desktop app** is a separate tool that is useful for review and research.
+
+Use **VS Code Agent Mode (local)** for:
+- Implementing changes (code + docs) and keeping diffs small.
+- Running verification (`AI Brain: eval`, `pytest -q`, sanity checks).
+- Debugging failures with direct stack traces and repro.
+
+Ask the user to use the **Copilot app (external)** when you need:
+- Long-form architecture review, alternative design exploration, or “fresh eyes” critique.
+- Broader research-style synthesis that doesn’t require executing code.
+- A mirror-based assessment against the public repo URL (so the reviewer can browse/search without pasting files).
+
+When you do ask for Copilot help, be explicit about what you want back:
+- Exact file paths + quoted snippets for any issues.
+- A ranked list of recommended changes with rationale and risk.
+- Clear PASS/FAIL checks (e.g., `pytest -q`, `python run_eval.py`, determinism repro steps).
+
+Reference docs for the workflow:
+- `Copilot_app_Attachments_txt_files_of_py_modules/CopilotApp_Mirror_Bootstrap.md` (paste-ready new chat message)
+- `Copilot_app_Attachments_txt_files_of_py_modules/CopilotApp_Procedure_PublicMirror_and_Attachments.md` (how to mirror/attach)
+- `docs/PUBLIC_MIRROR_WORKFLOW.md` (two-repo mirror publishing)
+
 ## Project Conventions
 
 - Root system (“language-context pipeline”) lives at workspace root (`module_*.py`, `cli.py`, etc.).

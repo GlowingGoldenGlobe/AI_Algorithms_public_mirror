@@ -4,6 +4,20 @@ Date: 2026-01-25
 
 ## Log
 
+- New task (2026-01-27): add a project-root VS Code Agent Mode orchestrator.
+  - Add: `project_orchestrator.py` to supervise recurring CLI work (status/determinism/eval/gc and optional public-mirror regeneration) with lockfile + atomic state writes.
+  - Add: `.vscode/agents/orchestrator.agent.md` and VS Code task entry to run the orchestrator as a background loop.
+  - Add: optional fallback runners (GitHub Actions nightly workflow + systemd unit + Windows Scheduled Task helper).
+  - Integrate: optional hooks for `PackageSuite_ProjectDivisionAIWorkflow` if its folder is dropped into the repo (no hard dependency).
+  - Verification: run VS Code task “AI Brain: eval” and log pass/fail.
+
+- Completed (2026-01-27): project-root orchestrator + VS Code integration.
+  - Added: `project_orchestrator.py` + `orchestrator_config.json` (single-writer lock, atomic state, configurable jobs).
+  - Added: `.vscode/agents/orchestrator.agent.md` and tasks `AI Brain: orchestrator (oneshot)` / `AI Brain: orchestrator (bg)`.
+  - Fixed: `.vscode/tasks.json` had a missing comma (invalid JSON) which could break task loading.
+  - Added: `.github/workflows/orchestrator_nightly.yml`, `deploy/systemd/project-orchestrator.service`, `deploy/windows/register_orchestrator_task.ps1`.
+  - Verification: ran VS Code task “AI Brain: eval” (PASS).
+
 - Completed (2026-01-27): added the Copilot app AI guide to the public mirror and ensured regeneration preserves it.
   - Created: `COPILOT.md` (root) as a copy of `Copilot_app_Attachments_txt_files_of_py_modules/exports/CopilotApp_AI_Guide.md`.
   - Updated: `scripts/create_public_mirror.py` now copies `COPILOT.md` into the mirror (when present).
@@ -64,6 +78,36 @@ Date: 2026-01-25
   - Update: mirror-generated docs (`public_mirror/README_MIRROR.md`, `public_mirror/PUBLISHING.md`) to mention `--preserve-git` and clarify that the mirror repo is published separately.
   - Update: Copilot app procedure doc to warn that `public_mirror/` is ignored in the main repo and must be updated via commits inside the mirror repo.
   - Verification: run VS Code task “AI Brain: eval” and log completion.
+
+- Completed (2026-01-27): documented the “two repos” public mirror workflow.
+  - Added: `docs/PUBLIC_MIRROR_WORKFLOW.md` (main repo vs mirror repo, regen + publish/update commands).
+  - Updated: `scripts/create_public_mirror.py` generated mirror docs now include a “Two-repo workflow” section and a regenerate/update snippet.
+  - Updated: `CopilotApp_Procedure_PublicMirror_and_Attachments.md` now points to the workflow doc and clarifies that publishing happens inside `public_mirror/`.
+  - Regenerated: `public_mirror/` (profile `core_thinking`, `--preserve-git`) and re-exported attachments.
+  - Verification: VS Code task “AI Brain: eval” completed successfully.
+
+- New task (2026-01-27): fix `.gitignore` collision between venv `Scripts/` and project `scripts/`.
+  - Found: on Windows, `.gitignore` rules for `Scripts/` can end up ignoring the project `scripts/` directory (case-insensitive path behavior), which prevents tracking critical tooling like `scripts/create_public_mirror.py`.
+  - Plan: anchor venv ignores to repo root and explicitly unignore/ignore-select within `scripts/` so `.py` tooling stays trackable while `.exe/.bat/.ps1` venv artifacts remain ignored.
+
+- Completed (2026-01-27): fixed `.gitignore` collision and restored tracking for `scripts/`.
+  - Updated: `.gitignore` no longer ignores the entire `Scripts/` directory; instead it ignores common venv artifacts in `scripts/` (e.g., `*.exe`, activation scripts) while allowing `scripts/*.py` to be tracked.
+  - Normalized: folder casing to `scripts/` (Windows rename) so paths match docs/tasks and behave predictably cross-platform.
+  - Added: tracked `scripts/*.py` tooling (mirror builder/exporter, sweeps, checks, dashboards).
+  - Verification: ran VS Code task “AI Brain: eval” (completed).
+
+- Small fix (2026-01-27): track `AI_Coder_Controller/scripts/create_desktop_shortcut.ps1`.
+  - Rationale: `AI_Coder_Controller/` is tracked; leaving its `scripts/` helper untracked causes persistent dirty status.
+
+- New task (2026-01-27): document “when to use Copilot app” for VS Code Agent Mode.
+  - Add: a short section explaining which tasks the VS Code agent should do locally (run tests/eval, implement patches) vs when to ask the user to use the standalone Copilot app (Deep Research, long-form external review).
+  - Place: in a repo-visible doc used as agent guidance (e.g., `AGENT.md`) and link it from the Copilot app procedure doc.
+
+- Completed (2026-01-27): documented when to use the desktop Copilot app.
+  - Updated: `AGENT.md` now includes a “When to use the desktop Copilot app (external)” section.
+  - Updated: `.github/copilot-instructions.md` includes a short policy on when to ask for Copilot app help.
+  - Updated: `CopilotApp_Procedure_PublicMirror_and_Attachments.md` links to the prompt template and `AGENT.md`.
+  - Verification: run “AI Brain: eval” and regenerate mirror/exports so public reviewers see the guidance.
 
 - In progress (2026-01-26): wire `orchestration_migration` error_resolution activity execution + add an eval gate that asserts an error_resolution activity appears when contradictions are decisive.
 
