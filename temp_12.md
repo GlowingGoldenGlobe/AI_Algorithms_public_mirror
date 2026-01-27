@@ -43,6 +43,28 @@ Date: 2026-01-25
 - Completed (2026-01-27): published updated public mirror contents.
   - In `public_mirror/`: committed and pushed mirror updates to the public repo (core_thinking completeness + doc hygiene).
 
+- Completed (2026-01-27): mirror sanity + broken-link fix.
+  - Found: `public_mirror/README.md` referenced `adversarial_run_results_v1.md` which was missing from the mirror.
+  - Updated: `scripts/create_public_mirror.py` core_thinking allowlist includes `adversarial_run_results_v1.md`.
+  - Regenerated and published: pushed the mirror update so the README link resolves.
+
+- New task (2026-01-27): main repo hygiene — don’t track generated public mirror artifacts.
+  - Update: `.gitignore` to ignore `public_mirror/` and Copilot exports.
+  - Update: remove `public_mirror/` from main repo git index (keep files on disk; mirror is published separately).
+  - Restore: any accidental deletions (workflow/templates) before the next commit.
+
+- Completed (2026-01-27): main repo hygiene — don’t track generated public mirror artifacts.
+  - Updated: `.gitignore` now ignores `public_mirror/` and only ignores `Copilot_app_Attachments_txt_files_of_py_modules/exports/` (so Copilot procedure docs can be committed).
+  - Updated: removed `public_mirror/` from the main repo git index (mirror remains on disk and is published separately).
+  - Restored: `.github/workflows/canary_checks.yml` and `docs/TRIAGE_TICKET_TEMPLATE.md` to avoid accidental deletions.
+  - Verification: ran VS Code task “AI Brain: eval” (completed).
+
+- New task (2026-01-27): document the “two repos” public mirror workflow.
+  - Add: a short guide explaining main repo vs `public_mirror/` repo responsibilities and the `--preserve-git` regeneration workflow.
+  - Update: mirror-generated docs (`public_mirror/README_MIRROR.md`, `public_mirror/PUBLISHING.md`) to mention `--preserve-git` and clarify that the mirror repo is published separately.
+  - Update: Copilot app procedure doc to warn that `public_mirror/` is ignored in the main repo and must be updated via commits inside the mirror repo.
+  - Verification: run VS Code task “AI Brain: eval” and log completion.
+
 - In progress (2026-01-26): wire `orchestration_migration` error_resolution activity execution + add an eval gate that asserts an error_resolution activity appears when contradictions are decisive.
 
 - New task (2026-01-26): add an owner reminder in `index.html` to update repo acquisition info later (e.g., insert public GitHub URL when available).

@@ -41,9 +41,9 @@
       "sha256": "ed9dfa7ef2459fe193fec72fee46fa7bc264c9a4baeacca97d5dfa3739a122bb"
     },
     {
-      "bytes": 930,
+      "bytes": 1308,
       "path": "PUBLISHING.md",
-      "sha256": "0c4e1f417517e91fb9c4ecc63aa37349294365bb50705b30d36e8b60912d5119"
+      "sha256": "b559d9177877e4716af4dc7eea8030659a9b0edac2957d75d2ab6a323921af66"
     },
     {
       "bytes": 53589,
@@ -51,9 +51,9 @@
       "sha256": "827531513d0051927033b46ac02c48aebef5f1f7307b6aaa605b569501eecfa8"
     },
     {
-      "bytes": 1243,
+      "bytes": 1733,
       "path": "README_MIRROR.md",
-      "sha256": "7e6e79590432b63159f11a032ae038a6c930143e0421bc4815294ad016200133"
+      "sha256": "77220a83e78bc00c4b4d8b94e3e8a48fa52740e3c71c0a4bb147bbc512c72826"
     },
     {
       "bytes": 1190,
@@ -104,6 +104,11 @@
       "bytes": 1952,
       "path": "docs/PROMOTION_PR_TEMPLATE.md",
       "sha256": "67e3481269fd3365b4d5d1a49bff1dafdac7cb2ff75230e20148addec7b47323"
+    },
+    {
+      "bytes": 1709,
+      "path": "docs/PUBLIC_MIRROR_WORKFLOW.md",
+      "sha256": "4e2e1e2cc608dfcdbbede453458ce533939c6929b69c4a0a394ff6b34ce139ce"
     },
     {
       "bytes": 210,
@@ -316,9 +321,9 @@
       "sha256": "8ccc37febe69402b1869b2f0b869c35cffc28110fbaa1877c1aeb8745e51f6a0"
     },
     {
-      "bytes": 141118,
+      "bytes": 143093,
       "path": "temp_12.md",
-      "sha256": "c17a143375c34dad2652b0aaa76ccbca8b01b729cf9932091657986b79942815"
+      "sha256": "7ef80a5a196af8bca6410a89cd5e70a7d41fc84d46ae19f3fea1d0ea7250d84e"
     },
     {
       "bytes": 9717,

@@ -24,6 +24,22 @@ git remote add origin REPLACE_WITH_GITHUB_REPO_URL
 # git push -u origin master
 ```
 
+## Updating an existing mirror repo (recommended)
+
+If `public_mirror/` is already a git repo, regenerate the mirror from the **main** repo root using:
+
+```powershell
+py -3 scripts/create_public_mirror.py --profile core_thinking --preserve-git
+```
+
+Then commit/push from inside this folder:
+
+```powershell
+git add -A
+git commit -m "mirror: refresh"
+git push
+```
+
 ## Safety checklist
 
 - Only publish the contents of this folder (not the full workspace).

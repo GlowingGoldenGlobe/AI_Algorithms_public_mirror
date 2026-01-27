@@ -7,6 +7,15 @@ This folder is a minimal, safe-to-publish mirror generated from the main repo.
 
 For an authoritative file list, see `mirror_manifest.json`.
 
+## Two-repo workflow (important)
+
+This folder is generated from the main repo, but is meant to be published as a **separate public git repo**.
+
+- In the main repo, `public_mirror/` is intentionally ignored (so `git status` in the main repo will not show mirror changes).
+- To publish updates, regenerate the mirror from the main repo, then commit/push from inside `public_mirror/`.
+
+If present (profile `core_thinking`), see `docs/PUBLIC_MIRROR_WORKFLOW.md` for the step-by-step.
+
 ## What to run
 
 Windows (PowerShell):
