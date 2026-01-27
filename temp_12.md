@@ -33,6 +33,16 @@ Date: 2026-01-25
   - Add: missing safe files to `public_mirror` (core_thinking profile) so README/roadmap links resolve (CLI, scripts, key docs, sweep verifier).
   - Verification: regenerate mirror + exports; run VS Code task “AI Brain: eval” and log completion.
 
+- Completed (2026-01-27): public mirror hygiene + completeness for Copilot app review.
+  - Updated: `temp_12.md` redacts the owner-specific git remote string.
+  - Updated: `scripts/create_public_mirror.py` core_thinking profile now includes key docs (`docs/*`), CLI/scripts, sweep verifier, and AI_Brain docs so public reviewers can follow README/roadmap links.
+  - Regenerated: `public_mirror/` (note: if `public_mirror/` is already a git repo on Windows, use `--preserve-git` to avoid `.git` file-lock errors).
+  - Regenerated: Copilot app exports via `scripts/export_copilot_app_attachments.py`.
+  - Verification: ran VS Code task “AI Brain: eval” (completed).
+
+- Completed (2026-01-27): published updated public mirror contents.
+  - In `public_mirror/`: committed and pushed mirror updates to the public repo (core_thinking completeness + doc hygiene).
+
 - In progress (2026-01-26): wire `orchestration_migration` error_resolution activity execution + add an eval gate that asserts an error_resolution activity appears when contradictions are decisive.
 
 - New task (2026-01-26): add an owner reminder in `index.html` to update repo acquisition info later (e.g., insert public GitHub URL when available).
