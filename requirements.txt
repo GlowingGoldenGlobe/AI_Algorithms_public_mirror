@@ -1,0 +1,2 @@
+# Minimal requirements for the public mirror
+pytest>=7.0

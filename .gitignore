@@ -1,0 +1,15 @@
+# venv
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# test outputs
+*.out
+
+# runtime stores
+LongTermStore/
+ActiveSpace/
+ActivityQueue/
+TemporaryQueue/

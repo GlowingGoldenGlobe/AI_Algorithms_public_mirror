@@ -1,0 +1,35 @@
+[
+  {
+    "record_id": "sample_001",
+    "context_id": "semantic",
+    "value": 10.0,
+    "recurrence": 0.2,
+    "objective_links": {"target_obj": 0.0},
+    "conceptual_vector": [1.0, 0.0, 0.0],
+    "constraints": {},
+    "derived": false,
+    "inputs": []
+  },
+  {
+    "record_id": "sample_002",
+    "context_id": "semantic",
+    "value": 20.0,
+    "recurrence": 0.1,
+    "objective_links": {"target_obj": 0.5},
+    "conceptual_vector": [0.0, 1.0, 0.0],
+    "constraints": {},
+    "derived": false,
+    "inputs": []
+  },
+  {
+    "record_id": "sample_003",
+    "context_id": "semantic",
+    "value": 30.0,
+    "recurrence": 0.05,
+    "objective_links": {"other_obj": 1.0},
+    "conceptual_vector": [0.0, 0.0, 1.0],
+    "constraints": {},
+    "derived": false,
+    "inputs": []
+  }
+]

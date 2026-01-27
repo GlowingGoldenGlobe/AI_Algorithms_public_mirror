@@ -1,0 +1,27 @@
+{
+  "determinism": {
+    "deterministic_mode": true,
+    "fixed_timestamp": "2025-01-01T00:00:00Z"
+  },
+  "feature_flags": {
+    "use_rollback_resolution": false
+  },
+  "verifier": {
+    "adaptive_sampling": {
+      "early_stop_margin": 0.01,
+      "enabled": false,
+      "multiplier": 2,
+      "n0": 64,
+      "n_max": 256,
+      "n_min": 32,
+      "regression_gate": {
+        "enabled": true,
+        "max_disagreement_rate": 0.0,
+        "min_cases": 1
+      }
+    },
+    "confidence_threshold": 0.8,
+    "min_effect_size": 1e-06,
+    "p_threshold": 0.05
+  }
+}
