@@ -6,9 +6,19 @@
       "sha256": "228edd52dfa014b2229fcc95de123948d3f122d99a9772d74f6a286eb0f8a885"
     },
     {
-      "bytes": 1774,
+      "bytes": 2564,
       "path": "AGENT.md",
-      "sha256": "d0ac34f6d87d8d9d3a47f170b472cf3525649a3c51bdc0897623a84e3ae2b7dd"
+      "sha256": "827bd594897998d287f878b9c7b45b6f6ee78c7ed47be132ab1ae5947b6939ac"
+    },
+    {
+      "bytes": 3068,
+      "path": "AI_Brain/ARCHITECTURE.md",
+      "sha256": "d40803f849ae48c78a96327bdc325a6fc2d19749e7b4ce08574158526f6510b6"
+    },
+    {
+      "bytes": 4115,
+      "path": "AI_Brain/README.md",
+      "sha256": "3b142233c180033768b115b8bc64f3ffac7cb50a8bfd91c0d3d95392d66dabca"
     },
     {
       "bytes": 3328,
@@ -21,6 +31,11 @@
       "sha256": "e1b338ffc2d3922b4e41fe51cbf10c3ce1a7a4cdf5602fd0894d5c06877b7d39"
     },
     {
+      "bytes": 3033,
+      "path": "COPILOT.md",
+      "sha256": "c1813298478dfb95196716a96fdbf4423903064f8f084cabdc1526ef283e0dac"
+    },
+    {
       "bytes": 3070,
       "path": "DESIGN_GOALS.md",
       "sha256": "ed9dfa7ef2459fe193fec72fee46fa7bc264c9a4baeacca97d5dfa3739a122bb"
@@ -31,9 +46,14 @@
       "sha256": "0c4e1f417517e91fb9c4ecc63aa37349294365bb50705b30d36e8b60912d5119"
     },
     {
-      "bytes": 846,
+      "bytes": 53589,
+      "path": "README.md",
+      "sha256": "827531513d0051927033b46ac02c48aebef5f1f7307b6aaa605b569501eecfa8"
+    },
+    {
+      "bytes": 1243,
       "path": "README_MIRROR.md",
-      "sha256": "bba5df91419c26aa966072874303efabe32a948ff49038cba66611b9b781f79d"
+      "sha256": "7e6e79590432b63159f11a032ae038a6c930143e0421bc4815294ad016200133"
     },
     {
       "bytes": 1190,
@@ -51,14 +71,54 @@
       "sha256": "2e91bfc3d06b58e8364c3d2798dbda6a097f91f7233cfcd336ecee67558e957e"
     },
     {
+      "bytes": 2660,
+      "path": "TEMP_TRAIL_INDEX.md",
+      "sha256": "03c5dbb278069885894be1311ac8d7ed16575a21433f1abf2db67323a96ea690"
+    },
+    {
       "bytes": 15559,
       "path": "TUNING_GUIDE.md",
       "sha256": "d4fae00653bd939e64be168300216753ed081c4b0e5972bcf265940fdd463769"
     },
     {
+      "bytes": 43201,
+      "path": "cli.py",
+      "sha256": "21cc74b3d636f1e7bce46b0b8aa9d23015d3aa10173a3bb80b2188b41c746f88"
+    },
+    {
       "bytes": 591,
       "path": "config.json",
       "sha256": "195e9fdbad273188d4f721701e3cf02fed581f1b56fa212759cf9d034305cacd"
+    },
+    {
+      "bytes": 3085,
+      "path": "docs/PRODUCTION_ROLLOUT.md",
+      "sha256": "2dba8c544a5e5c54fe3818b43d4118b50f8f045ef4b055effb4c8194606aa840"
+    },
+    {
+      "bytes": 1952,
+      "path": "docs/PROMOTION_PR_TEMPLATE.md",
+      "sha256": "67e3481269fd3365b4d5d1a49bff1dafdac7cb2ff75230e20148addec7b47323"
+    },
+    {
+      "bytes": 210,
+      "path": "docs/RELEASE_NOTES.md",
+      "sha256": "27d4a48bbae705cece565e3802f5cdcf3b7e6a81436877e1a1cefcb76979f16d"
+    },
+    {
+      "bytes": 1669,
+      "path": "docs/SECRETS.md",
+      "sha256": "1a7fef7648d003774fcab70544207e9bd1e23e5a001736b8ee8f4504858cd56d"
+    },
+    {
+      "bytes": 2737,
+      "path": "docs/SWEEP_RUN.md",
+      "sha256": "e7028eae1be633305e79e1ee0b5a5bc26a1768f32441adaa4bb81bb7259194b9"
+    },
+    {
+      "bytes": 660,
+      "path": "metrics_dashboard.py",
+      "sha256": "9c5940450d82f81a479d01328033b9ca92d4e050b0413c005ae86c5501987b95"
     },
     {
       "bytes": 2805,
@@ -216,9 +276,44 @@
       "sha256": "1421c2c8d12712a836b8d7afe9daf93c68291c6784da9ccae56da3d1b1c05680"
     },
     {
+      "bytes": 4483,
+      "path": "roadmap_table_2.md",
+      "sha256": "d5f3b6030bbad1012932e6a456872aa207d6b9c74c61888b7690915f2cacc0eb"
+    },
+    {
       "bytes": 2446,
       "path": "run_eval.py",
       "sha256": "4207930b73885f64b6fd629813b46f05efb853739799b3c9ac49668f834ac381"
+    },
+    {
+      "bytes": 10490,
+      "path": "scripts/adversarial_sweep.py",
+      "sha256": "9d9f2894233a0985e2f93436e4f12ab89b962cac18ff611dbfbfbb189b349ffe"
+    },
+    {
+      "bytes": 16067,
+      "path": "scripts/compare_adaptive_vs_fixed.py",
+      "sha256": "48f149bbb62625950407497c821edcb7fd04da253aefe27e5728f01f7ad43b23"
+    },
+    {
+      "bytes": 4029,
+      "path": "scripts/metrics_dashboard.py",
+      "sha256": "83a9699c3f1364d534f6af2d7f50e0689a471dd5f005ba2a78e6153d5e351d5a"
+    },
+    {
+      "bytes": 2001,
+      "path": "scripts/run_adversarial_bundle.py",
+      "sha256": "656e30b3400dc72f91b193de7c69fbd721a0926350ec104de8f09efe16515ef4"
+    },
+    {
+      "bytes": 6655,
+      "path": "scripts/sweep_adaptive_sampling_params.py",
+      "sha256": "8ccc37febe69402b1869b2f0b869c35cffc28110fbaa1877c1aeb8745e51f6a0"
+    },
+    {
+      "bytes": 140246,
+      "path": "temp_12.md",
+      "sha256": "3e2e76bfeff9982a6d9f9bdca91748dc38658577a511d6b21d84384e4f131696"
     },
     {
       "bytes": 9717,
@@ -249,6 +344,11 @@
       "bytes": 1720,
       "path": "tests/test_adversarial.py",
       "sha256": "7f054c58bc3d29292c9f9d69ffea171e5c4d6f2cc0eae5ed9eef7e543b8cb0c4"
+    },
+    {
+      "bytes": 14050,
+      "path": "tools/verify_sweep_outputs.py",
+      "sha256": "c25f251e7680f30d458b1c78668fa4b5be55c5c07b4a1a9dc36eda7ad2965f57"
     }
   ],
   "generated_from": "AI_Algorithms",

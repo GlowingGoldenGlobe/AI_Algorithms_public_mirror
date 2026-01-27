@@ -26,6 +26,14 @@ This file is a persistent guide for any coding agent working in this repository.
 - 3D measurement core is in `AI_Brain/` and should remain cleanly layered.
 - Storage must use safe path resolution (`sanitize_id`, `safe_join`, `resolve_path`) instead of absolute paths.
 
+## Category Positioning (LLM vs. AI Brain)
+
+- This repo is **not** an LLM. It is a deterministic, measurement‑first cognitive loop with file‑backed memory and auditable artifacts.
+- When describing “smartness,” ground it in: explicit measurements, objective alignment, determinism, and traceable decision outputs.
+- Avoid comparing with market LLMs by capability claims. Instead compare **method** (measurement‑first vs. probabilistic text inference) and **artifacts** (auditable traces vs. opaque outputs).
+- Cite authoritative sources in this repo: `DESIGN_GOALS.md`, `README.md`, and `temp_12.md`.
+- If preparing content for external AI reviewers, use the normalized response format in `Copilot_app_Attachments_txt_files_of_py_modules/exports/CopilotApp_AI_Guide.md`.
+
 ## Verification
 
 - Prefer running the VS Code task “AI Brain: eval”.

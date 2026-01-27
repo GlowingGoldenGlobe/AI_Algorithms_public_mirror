@@ -1,6 +1,11 @@
 # public_mirror
 
-This folder is a minimal, safe-to-publish mirror of the adversarial harness from the main repo.
+This folder is a minimal, safe-to-publish mirror generated from the main repo.
+
+- Profile `adversarial`: smallest runnable adversarial harness + tests.
+- Profile `core_thinking`: broader review set (all `module_*.py` plus selected docs).
+
+For an authoritative file list, see `mirror_manifest.json`.
 
 ## What to run
 
@@ -32,5 +37,12 @@ python run_eval.py
 - `module_adversarial_test.py` provides `run_scenario(...)`.
 - `tests/test_adversarial.py` exercises scenarios S1–S6.
 - `run_eval.py` is mirror-only and runs the adversarial eval gates.
+
+## Assessment progression
+
+If present (profile `core_thinking`), start with:
+
+- `roadmap_table_2.md` (assessment-oriented progression)
+- `temp_12.md` (change log; what passed eval)
 
 See `PUBLISHING.md` for how to publish this folder as a public repo.
