@@ -1,0 +1,706 @@
+<!--
+AI_Algorithms / AI Brain — New Developer Guide (Offline)
+
+This file is intentionally static/offline-friendly and safe to open via file://.
+It provides a structured way to learn the repo and use the dashboard.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI_Algorithms — New Developer Guide</title>
+<style>
+    :root {
+        --bg: #0b0d10;
+        --panel: #121621;
+        --panel2: #0f1320;
+        --text: #e7eef8;
+        --muted: #a9b7cc;
+        --accent: #66d9ef;
+        --accent2: #a6e22e;
+        --warn: #fd971f;
+        --border: #2a3243;
+        --shadow: rgba(0, 0, 0, 0.35);
+        --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        --sans: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    body {
+        background: var(--bg);
+        color: var(--text);
+        margin: 0;
+        font-family: var(--sans);
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header {
+        padding: 24px 18px;
+        border-bottom: 1px solid var(--border);
+        background: linear-gradient(180deg, #0b0d10 0%, #0b0d10 50%, rgba(18,22,33,0.75) 100%);
+    }
+
+    .wrap { max-width: 1100px; margin: 0 auto; }
+
+    h1 { margin: 0 0 6px 0; font-size: 26px; }
+    .subtitle { margin: 0; color: var(--muted); }
+
+    .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+        padding: 18px;
+    }
+
+    .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px;
+        box-shadow: 0 10px 24px var(--shadow);
+    }
+
+    .card h2 { margin: 0 0 10px 0; font-size: 18px; }
+    .card p { margin: 8px 0; color: var(--muted); }
+
+    ul { margin: 8px 0 0 18px; padding: 0; }
+    li { margin: 8px 0; }
+
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+    .cmd {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: center;
+        margin: 8px 0;
+        padding: 10px;
+        background: var(--panel2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+    }
+
+    .cmd code {
+        font-family: var(--mono);
+        font-size: 13px;
+        color: var(--text);
+        word-break: break-word;
+    }
+
+    button {
+        border: 1px solid var(--border);
+        background: #0d1220;
+        color: var(--text);
+        border-radius: 10px;
+        padding: 10px 12px;
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    button:hover { border-color: var(--accent); }
+
+    .pill {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 12px;
+        font-family: var(--mono);
+    }
+
+    .kbd {
+        font-family: var(--mono);
+        border: 1px solid var(--border);
+        background: #0d1220;
+        padding: 2px 8px;
+        border-radius: 999px;
+        color: var(--text);
+        font-size: 12px;
+    }
+
+    .topnav {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: rgba(11, 13, 16, 0.92);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--border);
+    }
+    .topnav .wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 18px;
+    }
+    .topnav .links {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .topnav .menu {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .topnav .toggle {
+        display: none;
+        border: 1px solid var(--border);
+        background: #0d1220;
+        color: var(--text);
+        border-radius: 999px;
+        padding: 6px 10px;
+        cursor: pointer;
+        font-weight: 700;
+        font-family: var(--mono);
+        font-size: 12px;
+    }
+    .topnav .toggle:hover { border-color: var(--accent); }
+    .topnav a {
+        color: var(--text);
+        border: 1px solid var(--border);
+        background: #0d1220;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-family: var(--mono);
+        text-decoration: none;
+    }
+    .topnav a:hover { border-color: var(--accent); text-decoration: none; }
+    .topnav .brand {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    @media (max-width: 720px) {
+        .topnav .wrap { align-items: flex-start; }
+        .topnav .toggle { display: inline-block; }
+        .topnav .menu { width: 100%; justify-content: flex-end; }
+        .topnav .links { display: none; width: 100%; margin-top: 10px; justify-content: flex-end; }
+        .topnav[data-open="true"] .links { display: flex; }
+    }
+
+    footer {
+        border-top: 1px solid var(--border);
+        color: var(--muted);
+        padding: 18px;
+        font-size: 13px;
+    }
+</style>
+</head>
+<body>
+
+<nav class="topnav" aria-label="Quick navigation">
+    <div class="wrap">
+        <div class="brand">New Dev Guide</div>
+        <div class="menu">
+            <button type="button" class="toggle" id="topnav_toggle" aria-expanded="false" aria-controls="topnav_links" onclick="toggleTopNav()">Menu</button>
+            <div class="links" id="topnav_links">
+                <a href="index.html">Dashboard</a>
+                <a href="#top">Top</a>
+                <a href="#fast-start">Fast</a>
+                <a href="#workflow">Workflow</a>
+                <a href="#thinking">Thinking</a>
+                <a href="#start-brain">Start</a>
+                <a href="#walkthrough">5-min</a>
+                <a href="#agent-mode">Agent</a>
+                <a href="#copilot">Copilot</a>
+                <a href="#commands">Cmds</a>
+                <a href="#dashboard">Use Dashboard</a>
+                <a href="#project-map">Map</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<header>
+    <div class="wrap">
+        <div class="row" style="justify-content: space-between; gap: 14px;">
+            <div>
+                <h1>AI_Algorithms <span class="pill">new developer guide</span></h1>
+                <p class="subtitle">A structured way to understand this repo and use the local dashboard.</p>
+            </div>
+            <div class="row">
+                <button type="button" onclick="location.href='index.html'">Back to Dashboard</button>
+                <button type="button" onclick="location.hash='#top'">Top</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="wrap" id="top">
+    <div class="grid">
+        <section class="card">
+            <h2>On this page</h2>
+            <p class="hint">Quick navigation within this guide.</p>
+            <div class="row">
+                <button type="button" onclick="location.hash='#fast-start'">Fast Start</button>
+                <button type="button" onclick="location.hash='#workflow'">Core Workflow</button>
+                <button type="button" onclick="location.hash='#thinking'">Thinking</button>
+                <button type="button" onclick="location.hash='#start-brain'">Start + Assess</button>
+                <button type="button" onclick="location.hash='#agent-mode'">Agent Mode</button>
+                <button type="button" onclick="location.hash='#copilot'">Copilot</button>
+                <button type="button" onclick="location.hash='#commands'">Commands</button>
+                <button type="button" onclick="location.hash='#dashboard'">Dashboard</button>
+                <button type="button" onclick="location.hash='#project-map'">Project Map</button>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>What you’re looking at</h2>
+            <p>This repository is a practical, code-first “AI Brain” system: it focuses on deterministic measurement, selection, scheduling, and state management. It is designed to run locally.</p>
+            <ul>
+                <li><strong>Local-first:</strong> workflows are driven by Python + files on disk.</li>
+                <li><strong>Determinism-aware:</strong> many modules honor deterministic settings for repeatable runs.</li>
+                <li><strong>Offline-friendly docs:</strong> this guide and the dashboard are static HTML.</li>
+            </ul>
+            <p class="hint" style="margin-top: 10px;"><strong>Category difference:</strong> this is <em>not</em> an LLM. It is a measurement-first, auditable reasoning loop that writes explicit artifacts and decision traces to disk.</p>
+            <p class="hint" style="margin-top: 10px;">This guide is intentionally generic: it teaches the repo without assuming any external context.</p>
+        </section>
+
+        <section class="card" id="fast-start">
+            <h2>Fast start (10–15 minutes)</h2>
+            <ul>
+                <li>Read: <a href="README.md">README.md</a> and <a href="DESIGN_GOALS.md">DESIGN_GOALS.md</a></li>
+                <li>Skim: <a href="AGENT.md">AGENT.md</a> and <a href="ASSESSMENT_PROCEDURE.md">ASSESSMENT_PROCEDURE.md</a></li>
+                <li>Run status, then eval (commands below)</li>
+                <li>Open the dashboard (<a href="index.html">index.html</a>) and use the copy buttons</li>
+            </ul>
+            <div class="row" style="margin-top: 10px;">
+                <button type="button" onclick="location.href='index.html#commands'">Go to Dashboard Commands</button>
+            </div>
+        </section>
+
+        <section class="card" id="get-the-repo">
+            <h2>How to obtain this project (repo files)</h2>
+            <p>This project is designed to be runnable locally. There are a few ways a developer may receive the files:</p>
+            <ul>
+                <li><strong>Offline transfer (USB / external drive):</strong> the owner provides a folder copy or a zip archive of the repo.</li>
+                <li><strong>GitHub (future):</strong> if/when a public remote exists, a link can be added here.</li>
+                <li><strong>Request from the owner:</strong> email <a href="mailto:craddock338@gmail.com">craddock338@gmail.com</a>.</li>
+            </ul>
+            <p class="hint" style="margin-top: 10px;">Tip: after you receive the files, validate your setup by running <span class="kbd">status</span> then <span class="kbd">eval</span> in the Commands section below.</p>
+        </section>
+
+        <section class="card" id="workflow">
+            <h2>Core workflow (recommended procedure)</h2>
+            <p>Use a tight feedback loop: make small changes, run eval, then log what happened.</p>
+            <ul>
+                <li><strong>Log work:</strong> add a short entry to <a href="temp_12.md">temp_12.md</a> before/after meaningful changes.</li>
+                <li><strong>Prefer repo tasks:</strong> VS Code tasks already exist for common operations.</li>
+                <li><strong>Stay deterministic when needed:</strong> use determinism toggles to reproduce issues and compare runs.</li>
+            </ul>
+        </section>
+
+        <section class="card" id="thinking">
+            <h2>How the AI Brain thinks (what to read and where it lives)</h2>
+            <p>There are two complementary “histories” in this repo:</p>
+            <ul>
+                <li><strong>Stable upgrade history:</strong> the <span class="kbd">RESULTS_*.md</span> files (major milestones).</li>
+                <li><strong>Progression trail:</strong> the <span class="kbd">temp_*.md</span> files (chronological narrative + evolving architecture).</li>
+            </ul>
+
+            <h3 style="margin: 12px 0 6px 0; font-size: 16px;">What makes it “smarter” (more logical / rational)</h3>
+            <ul>
+                <li><strong>Measurement-first loop:</strong> explicit signals are computed (recurrence, constraints, objective alignment) before decisions.</li>
+                <li><strong>Determinism + eval gates:</strong> repeatable runs and regression checks define correctness.</li>
+                <li><strong>Auditable artifacts:</strong> decisions, justifications, and schedules are persisted to files.</li>
+                <li><strong>Relational substrate:</strong> both semantic and 3D data attach to the same measured structure.</li>
+            </ul>
+
+            <p class="hint" style="margin-top: 10px;">Start here for the progression trail:</p>
+            <ul>
+                <li><a href="TEMP_TRAIL_INDEX.md">TEMP_TRAIL_INDEX.md</a> (map of the temp files + recommended reading order)</li>
+                <li><a href="temp_12.md">temp_12.md</a> (canonical task log: what changed, what passed eval)</li>
+            </ul>
+
+            <p class="hint" style="margin-top: 10px;">If you want the “thinking loop” in code, begin with:</p>
+            <ul>
+                <li><a href="module_integration.py">module_integration.py</a> (orchestration / cycle)</li>
+                <li><a href="module_reasoning.py">module_reasoning.py</a> (synthesis + artifacts)</li>
+                <li><a href="module_retrieval.py">module_retrieval.py</a> (context retrieval)</li>
+                <li><a href="module_select.py">module_select.py</a> (selection/ranking)</li>
+                <li><a href="module_scheduler.py">module_scheduler.py</a> (revisit scheduling)</li>
+                <li><a href="module_verifier.py">module_verifier.py</a> + <a href="module_error_resolution.py">module_error_resolution.py</a> (validation/rollback/escalation)</li>
+            </ul>
+        </section>
+
+        <section class="card" id="reading">
+            <h2>What to read vs what to skip (first-pass guide)</h2>
+            <p>This repo has a lot of history. You do <em>not</em> need to read everything to understand “how it thinks.”</p>
+
+            <h3 style="margin: 12px 0 6px 0; font-size: 16px;">Recommended reads (by experience level)</h3>
+            <ul>
+                <li><strong>Beginner / new to the repo:</strong> <a href="learn.html">learn.html</a>, <a href="README.md">README.md</a>, <a href="TEMP_TRAIL_INDEX.md">TEMP_TRAIL_INDEX.md</a>, <a href="module_integration.py">module_integration.py</a>, <a href="module_reasoning.py">module_reasoning.py</a></li>
+                <li><strong>Intermediate (debug/extend behavior):</strong> add <a href="module_retrieval.py">module_retrieval.py</a>, <a href="module_select.py">module_select.py</a>, <a href="module_scheduler.py">module_scheduler.py</a>, <a href="module_verifier.py">module_verifier.py</a>, <a href="module_error_resolution.py">module_error_resolution.py</a></li>
+                <li><strong>Advanced (system discipline + correctness):</strong> add <a href="run_eval.py">run_eval.py</a>, <a href="RESULTS_EvalHarness.md">RESULTS_EvalHarness.md</a>, <a href="RESULTS_Determinism.md">RESULTS_Determinism.md</a>, <a href="module_provenance.py">module_provenance.py</a>, <a href="module_storage.py">module_storage.py</a></li>
+            </ul>
+
+            <h3 style="margin: 12px 0 6px 0; font-size: 16px;">Usually skip on a first pass</h3>
+            <ul>
+                <li><strong>Runtime artifacts:</strong> <span class="kbd">LongTermStore/</span> and <span class="kbd">TemporaryQueue/</span> contents (inspect them after you run eval; don’t read them to learn the architecture).</li>
+                <li><strong>Generated/exported artifacts:</strong> <span class="kbd">public_mirror/</span> (the actual mirror) and <span class="kbd">Copilot_app_Attachments_txt_files_of_py_modules/</span> (attachment exports) unless you’re preparing a desktop Copilot workflow.</li>
+                <li><strong>Packages/deps:</strong> you generally don’t need to read dependency/package listings to understand the thinking loop (see <a href="requirements.txt">requirements.txt</a> only when setting up environments).</li>
+                <li><strong>Historical docs:</strong> older <span class="kbd">temp_*.md</span> files beyond the map in <a href="TEMP_TRAIL_INDEX.md">TEMP_TRAIL_INDEX.md</a> (use the map to avoid wandering).</li>
+            </ul>
+
+            <h3 style="margin: 12px 0 6px 0; font-size: 16px;">Prompt: generate a tailored reading list for your experience</h3>
+            <p class="hint">Use this with VS Code Agent Mode or any LLM. It asks for a reading plan matched to your level and goals.</p>
+            <div class="cmd">
+                <code id="cmd_reading_plan_prompt">Task: Create a tailored reading plan for this repo.
+
+My experience level: (choose one) beginner / intermediate / advanced
+My goal: (choose one) understand the thinking loop / debug behavior / extend with new modules / improve determinism+eval discipline / explore 3D+media activities
+Time budget: 15 min / 1 hour / 1 day
+
+Constraints:
+- Keep the plan grounded in files that exist in this repo.
+- Distinguish: “must read” vs “skim” vs “optional” vs “skip for now.”
+- Prefer explaining how the AI Brain thinks as a cycle.
+
+Deliver:
+1) A prioritized reading list with 1–2 sentences per file explaining why.
+2) A suggested order.
+3) A short checklist of commands to run to validate understanding (status/eval, optional metrics).
+4) A list of questions you need from me if you cannot access the repo directly.</code>
+                <button type="button" onclick="copyCmd('cmd_reading_plan_prompt')">Copy</button>
+            </div>
+        </section>
+
+        <section class="card" id="start-brain">
+            <h2>Start + assess (runs, artifacts, metrics)</h2>
+            <p>This repo is “local-first”: starting the system typically means running the CLI or eval harness, then inspecting the persisted artifacts it wrote.</p>
+
+            <h3 style="margin: 12px 0 6px 0; font-size: 16px;">1) Run a baseline cycle</h3>
+            <p class="hint">These commands are safe and expected during onboarding.</p>
+            <div class="cmd"><code id="cmd_status2">py -3 cli.py status</code><button type="button" onclick="copyCmd('cmd_status2')">Copy</button></div>
+            <div class="cmd"><code id="cmd_eval2">py -3 run_eval.py</code><button type="button" onclick="copyCmd('cmd_eval2')">Copy</button></div>
+
+            <h3 style="margin: 12px 0 6px 0; font-size: 16px;">2) Inspect what it produced</h3>
+            <ul>
+                <li><strong>Persistent records:</strong> see <span class="kbd">LongTermStore/</span> (Semantic, Provenance, ActiveSpace, etc.)</li>
+                <li><strong>Transient queue:</strong> see <span class="kbd">TemporaryQueue/</span> (short-lived artifacts and reports)</li>
+                <li><strong>What was evaluated:</strong> see <a href="run_eval.py">run_eval.py</a> and <a href="RESULTS_EvalHarness.md">RESULTS_EvalHarness.md</a></li>
+            </ul>
+
+            <h3 id="walkthrough" style="margin: 12px 0 6px 0; font-size: 16px;">2a) Beginner 5-minute walkthrough (run → open 2 files → interpret ~10 fields)</h3>
+            <p class="hint">Goal: in one glance, see “inputs → retrieval → reasoning → decision → verification → scheduling” without reading the whole codebase.</p>
+            <ol style="margin: 8px 0 0 18px; color: var(--muted);">
+                <li><strong>Run eval:</strong> it writes deterministic sample artifacts you can inspect.
+                    <div class="cmd"><code id="cmd_walkthrough_eval">py -3 run_eval.py</code><button type="button" onclick="copyCmd('cmd_walkthrough_eval')">Copy</button></div>
+                </li>
+                <li><strong>Open these two files (they are created by eval cases):</strong>
+                    <ul>
+                        <li><span class="kbd">LongTermStore/Semantic/eval_orch_cycle_art_001.json</span> (canonical cycle artifact)</li>
+                        <li><span class="kbd">LongTermStore/Semantic/eval_obj_infl_001.json</span> (objective influence metrics)</li>
+                    </ul>
+                    <p class="hint">If the second file doesn’t contain <span class="kbd">objective_influence_metrics</span> in your run, enable it in <a href="config.json">config.json</a> under <span class="kbd">orchestration_migration.objective_influence_metrics.enabled</span> and rerun eval.</p>
+                </li>
+                <li><strong>Optional: print “activity quantities” (counts by activity type) from an artifact:</strong>
+                    <div class="cmd"><code id="cmd_activity_counts">py -3 scripts/activity_counts_report.py --category semantic --id eval_orch_cycle_art_001</code><button type="button" onclick="copyCmd('cmd_activity_counts')">Copy</button></div>
+                    <p class="hint">Optional aggregate mode (scripts-only, bounded) to compare record categories:</p>
+                    <div class="cmd"><code id="cmd_activity_counts_agg">py -3 scripts/activity_counts_report.py --aggregate --categories semantic procedural --limit 50</code><button type="button" onclick="copyCmd('cmd_activity_counts_agg')">Copy</button></div>
+                </li>
+                <li><strong>In each file, look under:</strong> <span class="kbd">relational_state.decision_trace</span>.
+                    <ul>
+                        <li><strong>cycle_artifact</strong> (the “one place to look” summary):
+                            <ul>
+                                <li><span class="kbd">cycle_artifact.cycle_id</span> and <span class="kbd">cycle_artifact.fixed_timestamp</span> (determinism anchors)</li>
+                                <li><span class="kbd">cycle_artifact.plan.want_types</span> (what it decided to do)</li>
+                                <li><span class="kbd">cycle_artifact.activities.completed</span> and <span class="kbd">cycle_artifact.activities.pending_activity_types</span> (what ran vs what’s queued)</li>
+                                <li><span class="kbd">cycle_artifact.retrieval.count</span> and <span class="kbd">cycle_artifact.retrieval.result_ids</span> (what context it pulled in)</li>
+                                <li><span class="kbd">cycle_artifact.reasoning.has_contradiction</span> and <span class="kbd">cycle_artifact.reasoning.decisive_recommendation</span> (what reasoning/constraint signals drove decisions)</li>
+                                <li><span class="kbd">cycle_artifact.decision.target_space</span> and <span class="kbd">cycle_artifact.decision.policy_rule_id</span> (the final routing decision)</li>
+                                <li><span class="kbd">cycle_artifact.decision.soft_influence</span> (optional; bounded influence audit when enabled)</li>
+                                <li><span class="kbd">cycle_artifact.verification</span> (summary of verifier/error-resolution outcomes)</li>
+                                <li><span class="kbd">cycle_artifact.scheduling.synthesis</span> (whether/when a revisit was scheduled)</li>
+                            </ul>
+                        </li>
+                        <li><strong>objective_influence_metrics</strong> (observability only; gated by config):
+                            <ul>
+                                <li><span class="kbd">objective_influence_metrics.active_objective_ids</span> (which objectives were active)</li>
+                                <li><span class="kbd">objective_influence_metrics.retrieval.differs</span> and <span class="kbd">objective_influence_metrics.retrieval.overlap_jaccard</span> (did objectives change what would be retrieved?)</li>
+                                <li><span class="kbd">objective_influence_metrics.selection.objective_alignment</span> (the objective-alignment value fed into policy)</li>
+                                <li><span class="kbd">objective_influence_metrics.scheduling.scheduled_synthesis</span> (objective-conditioned scheduling outcome)</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+            </ol>
+            <p class="hint">For more context: <a href="TEMP_TRAIL_INDEX.md">TEMP_TRAIL_INDEX.md</a> (reading order) and <a href="AGENT_MODE_ASSESSMENT_REPORT.md">AGENT_MODE_ASSESSMENT_REPORT.md</a> (how to assess the system).</p>
+
+            <h3 style="margin: 12px 0 6px 0; font-size: 16px;">3) Metrics (optional)</h3>
+            <p class="hint">Some modules emit lightweight counters (for example, error-resolution sampling stats) which can be written to JSON and summarized.</p>
+            <div class="cmd"><code id="cmd_flush_metrics">py -3 -c "from module_metrics import flush_metrics; print(flush_metrics())"</code><button type="button" onclick="copyCmd('cmd_flush_metrics')">Copy</button></div>
+            <div class="cmd"><code id="cmd_metrics_dashboard">py -3 scripts/metrics_dashboard.py</code><button type="button" onclick="copyCmd('cmd_metrics_dashboard')">Copy</button></div>
+
+            <h3 style="margin: 12px 0 6px 0; font-size: 16px;">Using VS Code Agent Mode (or other LLMs)</h3>
+            <p class="hint">You can ask an AI assistant to assess the architecture and “how the AI Brain thinks” using only the public docs + key modules.</p>
+            <p class="hint">Paste-ready prompt template (edit as needed):</p>
+            <div class="cmd">
+                <code id="cmd_prompt_template">You are reviewing a local-first, determinism-aware “AI Brain” repo. Goal: explain how it thinks as a cycle: storage → measure → retrieve → reason → select → verify/error-resolve → schedule → log.\n\nPlease read these files first (in order):\n- README.md\n- DESIGN_GOALS.md\n- TEMP_TRAIL_INDEX.md\n- temp_12.md\n- module_integration.py\n- module_reasoning.py\n- module_retrieval.py\n- module_select.py\n- module_verifier.py and module_error_resolution.py\n\nDeliver: (1) a concise cycle diagram, (2) where determinism is enforced, (3) what artifacts are written (LongTermStore/ vs TemporaryQueue/), (4) 3 prioritized next upgrades that preserve eval-gated discipline.</code>
+                <button type="button" onclick="copyCmd('cmd_prompt_template')">Copy</button>
+            </div>
+            <p class="hint">If using the desktop Copilot app specifically, prefer the public-mirror workflow in the Copilot section below (it avoids pasting large files into chat).</p>
+        </section>
+
+        <section class="card" id="agent-mode">
+            <h2>Working with Agent Mode / other LLMs</h2>
+            <p>Many developers use an AI assistant to speed up investigation, design, and implementation. Two practical modes:</p>
+            <ul>
+                <li><strong>Local agent (VS Code Agent Mode):</strong> can read/write this workspace and run tasks. Best for implementation + verification.</li>
+                <li><strong>External LLM (including desktop Copilot app):</strong> best for long-form review and R&amp;D; prefer the public mirror or attach small MD/TXT files.</li>
+            </ul>
+
+            <h3 style="margin: 12px 0 6px 0; font-size: 16px;">Attachable assessment report</h3>
+            <p class="hint">If you want a compact, attachable assessment method + architecture review, use:</p>
+            <ul>
+                <li><a href="AGENT_MODE_ASSESSMENT_REPORT.md">AGENT_MODE_ASSESSMENT_REPORT.md</a></li>
+            </ul>
+
+            <h3 style="margin: 12px 0 6px 0; font-size: 16px;">How to message an agent (example prompt)</h3>
+            <p class="hint">This is intentionally similar to how you can message VS Code Agent Mode: give a goal, constraints, files to read, and concrete deliverables.</p>
+            <div class="cmd">
+                <code id="cmd_agent_prompt">Task: Review this repo and explain “how the AI Brain thinks” as a loop, then propose upgrades.
+
+Constraints:
+- Be grounded in repo files.
+- Prefer deterministic, eval-gated changes.
+- Avoid hard-coded absolute paths.
+
+Read first:
+- learn.html
+- TEMP_TRAIL_INDEX.md
+- temp_12.md
+- module_integration.py
+- module_reasoning.py
+- module_retrieval.py
+- module_select.py
+- module_verifier.py
+- module_error_resolution.py
+- module_scheduler.py
+
+Deliver:
+1) A concise loop diagram.
+2) Where determinism is enforced.
+3) What artifacts are written and where.
+4) A smart-vs-poor thinking assessment rubric applied to this repo.
+5) 3 prioritized upgrades with acceptance criteria + suggested eval gates.</code>
+                <button type="button" onclick="copyCmd('cmd_agent_prompt')">Copy</button>
+            </div>
+
+            <h3 style="margin: 12px 0 6px 0; font-size: 16px;">Investigation / R&amp;D prompt variants</h3>
+            <p class="hint">Use these to steer the AI toward specific research and development directions.</p>
+            <div class="cmd">
+                <code id="cmd_rnd_prompt">Task: Propose an R&amp;D plan to scale this AI Brain.
+
+Focus areas to compare:
+- Module-system refinement vs scaling with larger models/tools
+- More explicit math/measurement (scores, thresholds, uncertainty) vs more heuristic logic
+- Stronger verifier/error-resolution vs more aggressive selection
+
+Deliver:
+1) A phased plan (P0/P1/P2).
+2) Cost/risk/benefit per phase.
+3) Minimal eval gates per phase.
+4) What new metrics to add to prove progress.</code>
+                <button type="button" onclick="copyCmd('cmd_rnd_prompt')">Copy</button>
+            </div>
+
+            <h3 style="margin: 12px 0 6px 0; font-size: 16px;">What to request from the developer (info checklist)</h3>
+            <p class="hint">If the AI lacks local access, it should request specific, small artifacts instead of guessing.</p>
+            <ul>
+                <li><strong>Environment:</strong> OS, Python version, whether determinism is on, and whether eval passes.</li>
+                <li><strong>Artifacts:</strong> the latest `run_eval.py` output and 1–2 representative JSON records from `LongTermStore/` or `TemporaryQueue/`.</li>
+                <li><strong>Constraints:</strong> target hardware limits (CPU/RAM), runtime budget, and whether GPU is available.</li>
+                <li><strong>Goal:</strong> correctness/traceability vs throughput/scale vs new modalities (3D/images/video).</li>
+            </ul>
+
+            <div class="cmd">
+                <code id="cmd_dev_info_request">Please reply with:
+1) `py -3 cli.py status` output
+2) `py -3 run_eval.py` output (or the failing gate)
+3) Your hardware: CPU model (optional), RAM, GPU (if any)
+4) Your goal priority: (A) correctness/auditability, (B) speed/throughput, (C) new modalities (3D/images/video)
+5) One representative artifact file you can share (path + contents): either `TemporaryQueue/*.json` or `LongTermStore/Semantic/*.json`</code>
+                <button type="button" onclick="copyCmd('cmd_dev_info_request')">Copy</button>
+            </div>
+
+            <h3 style="margin: 12px 0 6px 0; font-size: 16px;">Scaling, math, and modalities (practical notes)</h3>
+            <ul>
+                <li><strong>Math/measurement:</strong> prefer adding scores/thresholds + uncertainty artifacts that can be regression-tested.</li>
+                <li><strong>3D/images/video:</strong> treat as separate “activity types” with explicit storage contracts and small synthetic eval assets.</li>
+                <li><strong>Hardware constraints:</strong> optimize for CPU-first determinism; add optional GPU acceleration only when gated and measurable.</li>
+                <li><strong>Quantity knobs:</strong> cap retrieval size, sampling budgets, and media frame counts; log the caps into artifacts for audit.</li>
+            </ul>
+        </section>
+
+        <section class="card" id="copilot">
+            <h2>Copilot workflows (VS Code Agent Mode + desktop Copilot app)</h2>
+            <p>This repo supports two common “AI helper” workflows. They are different on purpose:</p>
+            <ul>
+                <li><strong>VS Code Agent Mode (recommended for local work):</strong> the agent can read/write files and run VS Code tasks directly in this workspace. Use it for implementing changes and running eval.</li>
+                <li><strong>Desktop Copilot app (recommended for long-form design + review):</strong> best used against a temporary <em>public mirror</em> repo URL, with a <em>file attachment fallback</em> if the app can’t access the mirror.</li>
+            </ul>
+
+            <p class="hint" style="margin-top: 10px;">See the step-by-step procedure here:</p>
+            <ul>
+                <li><a href="Copilot_app_Attachments_txt_files_of_py_modules/CopilotApp_Procedure_PublicMirror_and_Attachments.md">CopilotApp_Procedure_PublicMirror_and_Attachments.md</a></li>
+                <li><a href="public_mirror/PUBLISHING.md">public_mirror/PUBLISHING.md</a> (how to publish the temporary mirror)</li>
+            </ul>
+
+            <h3 style="margin: 12px 0 6px 0; font-size: 16px;">Public mirror (desktop Copilot app)</h3>
+            <p class="hint">Regenerate the mirror, then publish it and paste the public URL into Copilot app.</p>
+            <div class="cmd"><code id="cmd_mirror">py -3 scripts/create_public_mirror.py</code><button type="button" onclick="copyCmd('cmd_mirror')">Copy</button></div>
+
+            <h3 style="margin: 12px 0 6px 0; font-size: 16px;">Attachment fallback (desktop Copilot app)</h3>
+            <p class="hint">If you can’t use the mirror URL, export small attachable .txt versions of key modules.</p>
+            <div class="cmd"><code id="cmd_export_attachments">py -3 scripts/export_copilot_app_attachments.py</code><button type="button" onclick="copyCmd('cmd_export_attachments')">Copy</button></div>
+
+            <p class="hint" style="margin-top: 10px;">Expected outputs to bring back from Copilot app:</p>
+            <ul>
+                <li>Whether `python run_eval.py` passed (and which gates failed if not)</li>
+                <li>Determinism repro (run the same scenario twice; confirm equality)</li>
+                <li>If something fails: the traceback and the file/line</li>
+            </ul>
+        </section>
+
+        <section class="card" id="commands">
+            <h2>Commands you’ll actually run</h2>
+            <p class="hint">Run from PowerShell with working directory at the repo root.</p>
+
+            <div class="cmd"><code id="cmd_status">py -3 cli.py status</code><button type="button" onclick="copyCmd('cmd_status')">Copy</button></div>
+            <div class="cmd"><code id="cmd_eval">py -3 run_eval.py</code><button type="button" onclick="copyCmd('cmd_eval')">Copy</button></div>
+
+            <div class="cmd"><code id="cmd_det_on">py -3 cli.py det-set --on --fixed-timestamp 2025-02-01T00:00:00Z</code><button type="button" onclick="copyCmd('cmd_det_on')">Copy</button></div>
+            <div class="cmd"><code id="cmd_det_off">py -3 cli.py det-set --off</code><button type="button" onclick="copyCmd('cmd_det_off')">Copy</button></div>
+
+            <div class="cmd"><code id="cmd_stress">python cli.py stress --id stress001 --content "keyword good synthesis" --quiet</code><button type="button" onclick="copyCmd('cmd_stress')">Copy</button></div>
+
+            <p class="hint" style="margin-top: 10px;">Optional (staging/debug): run a budget-capped adversarial parameter sweep (S1–S6). See <a href="TUNING_GUIDE.md">TUNING_GUIDE.md</a> and the Dashboard “Rollout Helpers”.</p>
+            <div class="cmd"><code id="cmd_adv_sweep">py -3 scripts\adversarial_sweep.py --out-dir TemporaryQueue\adversarial_sweep --budget 60 --deterministic</code><button type="button" onclick="copyCmd('cmd_adv_sweep')">Copy</button></div>
+
+            <p id="copy_status" class="hint"></p>
+        </section>
+
+        <section class="card" id="dashboard">
+            <h2>How to use the dashboard (index.html)</h2>
+            <ul>
+                <li><strong>Quick Links:</strong> jump into the key docs and results.</li>
+                <li><strong>Notes:</strong> stored only in your browser (localStorage) for daily procedure notes and tuning values.</li>
+                <li><strong>Common Commands:</strong> safe copy-only snippets for status/eval/stress, determinism, policy, GC, snapshot export.</li>
+                <li><strong>Current Task:</strong> keep a one-line “now doing” status so context survives handoffs.</li>
+            </ul>
+            <div class="row" style="margin-top: 10px;">
+                <button type="button" onclick="location.href='index.html#notes'">Go to Dashboard Notes</button>
+                <button type="button" onclick="location.href='index.html#commands'">Go to Dashboard Commands</button>
+            </div>
+        </section>
+
+        <section class="card" id="project-map">
+            <h2>Project map (where to look)</h2>
+            <ul>
+                <li><strong>CLI entry:</strong> <a href="cli.py">cli.py</a> (commands like status/eval/stress/policy)</li>
+                <li><strong>Eval harness:</strong> <a href="run_eval.py">run_eval.py</a> (the “truth” for regressions)</li>
+                <li><strong>Modules:</strong> <a href="module_integration.py">module_integration.py</a> and other <span class="kbd">module_*.py</span> files</li>
+                <li><strong>Config:</strong> <a href="config.json">config.json</a> (feature gates, determinism, tuning)</li>
+                <li><strong>Results:</strong> <a href="RESULTS_EvalHarness.md">RESULTS_EvalHarness.md</a> and other <span class="kbd">RESULTS_*.md</span></li>
+            </ul>
+        </section>
+
+        <section class="card">
+            <h2>Contribution expectations (lightweight)</h2>
+            <ul>
+                <li>Make small, reversible changes; avoid unrelated refactors.</li>
+                <li>Honor path safety and determinism conventions already in the repo.</li>
+                <li>After meaningful changes, run eval and log PASS/FAIL + notes in <a href="temp_12.md">temp_12.md</a>.</li>
+            </ul>
+        </section>
+
+        <section class="card">
+            <h2>Troubleshooting mindset</h2>
+            <ul>
+                <li>If something is flaky, enable determinism and re-run eval to isolate nondeterministic behavior.</li>
+                <li>If a change breaks eval, revert to the smallest fix that restores correctness first, then iterate.</li>
+                <li>If you’re unsure where behavior lives, start from <a href="cli.py">cli.py</a> and follow calls into <a href="module_integration.py">module_integration.py</a>.</li>
+            </ul>
+            <div class="row" style="margin-top: 10px;">
+                <button type="button" onclick="location.hash='#top'">Back to top</button>
+                <button type="button" onclick="location.href='index.html'">Back to dashboard</button>
+            </div>
+        </section>
+    </div>
+</main>
+
+<footer>
+    <div class="wrap">
+        <div>Updated: <span id="updated_on"></span></div>
+        <div class="hint">Tip: in VS Code, use the existing tasks like “AI Brain: eval”.</div>
+    </div>
+</footer>
+
+<script type="text/javascript">
+    function copyCmd(cmdId) {
+        const el = document.getElementById(cmdId);
+        const text = el ? (el.innerText || el.textContent || "") : "";
+        const status = document.getElementById("copy_status");
+        if (!text) {
+            if (status) status.textContent = "Nothing to copy.";
+            return;
+        }
+
+        if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                if (status) status.textContent = "Copied.";
+            }).catch(() => {
+                if (status) status.textContent = "Copy failed (browser permissions). Select the command text and copy manually.";
+            });
+        } else {
+            if (status) status.textContent = "Clipboard API unavailable. Select the command text and copy manually.";
+        }
+    }
+
+    function toggleTopNav() {
+        const nav = document.querySelector('.topnav');
+        const btn = document.getElementById('topnav_toggle');
+        if (!nav || !btn) return;
+        const isOpen = String(nav.getAttribute('data-open') || 'false') === 'true';
+        const next = (!isOpen);
+        nav.setAttribute('data-open', next ? 'true' : 'false');
+        btn.setAttribute('aria-expanded', next ? 'true' : 'false');
+    }
+
+    function closeTopNav() {
+        const nav = document.querySelector('.topnav');
+        const btn = document.getElementById('topnav_toggle');
+        if (!nav || !btn) return;
+        nav.setAttribute('data-open', 'false');
+        btn.setAttribute('aria-expanded', 'false');
+    }
+
+    (function init() {
+        const nav = document.querySelector('.topnav');
+        if (nav) nav.setAttribute('data-open', 'false');
+
+        const links = document.querySelectorAll('#topnav_links a');
+        if (links && links.length) {
+            links.forEach((a) => {
+                a.addEventListener('click', () => {
+                    closeTopNav();
+                });
+            });
+        }
+
+        const updated = document.getElementById("updated_on");
+        if (updated) updated.textContent = "2026-01-27";
+    })();
+</script>
+</body>
+</html>

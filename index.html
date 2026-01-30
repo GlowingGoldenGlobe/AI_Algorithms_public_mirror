@@ -1,0 +1,797 @@
+<!--
+AI_Algorithms / AI Brain — Local Dashboard
+
+This file is intentionally static/offline-friendly and safe to open via file://.
+It cannot directly run Python; instead it provides copy/paste commands and links.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI_Algorithms — AI Brain Dashboard</title>
+<style>
+    :root {
+        --bg: #0b0d10;
+        --panel: #121621;
+        --panel2: #0f1320;
+        --text: #e7eef8;
+        --muted: #a9b7cc;
+        --accent: #66d9ef;
+        --accent2: #a6e22e;
+        --warn: #fd971f;
+        --border: #2a3243;
+        --shadow: rgba(0, 0, 0, 0.35);
+        --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        --sans: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    body {
+        background: var(--bg);
+        color: var(--text);
+        margin: 0;
+        font-family: var(--sans);
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header {
+        padding: 24px 18px;
+        border-bottom: 1px solid var(--border);
+        background: linear-gradient(180deg, #0b0d10 0%, #0b0d10 50%, rgba(18,22,33,0.75) 100%);
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; }
+    h1 { margin: 0 0 6px 0; font-size: 26px; }
+    .subtitle { margin: 0; color: var(--muted); }
+
+    .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+        padding: 18px;
+    }
+    @media (min-width: 980px) {
+        .grid { grid-template-columns: 1.1fr 0.9fr; }
+    }
+
+    .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px;
+        box-shadow: 0 10px 24px var(--shadow);
+    }
+    .card h2 { margin: 0 0 10px 0; font-size: 18px; }
+    .card p { margin: 8px 0; color: var(--muted); }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    ul { margin: 8px 0 0 18px; padding: 0; }
+    li { margin: 8px 0; }
+
+    .cmd {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: center;
+        margin: 8px 0;
+        padding: 10px;
+        background: var(--panel2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+    }
+    .cmd code {
+        font-family: var(--mono);
+        font-size: 13px;
+        color: var(--text);
+        word-break: break-word;
+    }
+    button {
+        border: 1px solid var(--border);
+        background: #0d1220;
+        color: var(--text);
+        border-radius: 10px;
+        padding: 10px 12px;
+        cursor: pointer;
+        font-weight: 600;
+    }
+    button:hover { border-color: var(--accent); }
+
+    .pill {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 12px;
+        margin-left: 8px;
+        font-family: var(--mono);
+    }
+
+    textarea {
+        width: 100%;
+        min-height: 260px;
+        resize: vertical;
+        border-radius: 12px;
+        padding: 12px;
+        border: 1px solid var(--border);
+        background: #0d1220;
+        color: var(--text);
+        font-family: var(--mono);
+        font-size: 13px;
+        line-height: 1.35;
+        box-sizing: border-box;
+    }
+
+    .hint {
+        margin: 8px 0 0 0;
+        font-size: 13px;
+        color: var(--muted);
+    }
+
+    .topnav {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: rgba(11, 13, 16, 0.92);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--border);
+    }
+    .topnav .wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 18px;
+    }
+    .topnav .links {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .topnav .menu {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .topnav .toggle {
+        display: none;
+        border: 1px solid var(--border);
+        background: #0d1220;
+        color: var(--text);
+        border-radius: 999px;
+        padding: 6px 10px;
+        cursor: pointer;
+        font-weight: 700;
+        font-family: var(--mono);
+        font-size: 12px;
+    }
+    .topnav .toggle:hover { border-color: var(--accent); }
+    .topnav a {
+        color: var(--text);
+        border: 1px solid var(--border);
+        background: #0d1220;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-family: var(--mono);
+        text-decoration: none;
+    }
+    .topnav a:hover { border-color: var(--accent); text-decoration: none; }
+    .topnav .brand {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    @media (max-width: 720px) {
+        .topnav .wrap { align-items: flex-start; }
+        .topnav .toggle { display: inline-block; }
+        .topnav .menu { width: 100%; justify-content: flex-end; }
+        .topnav .links { display: none; width: 100%; margin-top: 10px; justify-content: flex-end; }
+        .topnav[data-open="true"] .links { display: flex; }
+    }
+
+    footer {
+        border-top: 1px solid var(--border);
+        color: var(--muted);
+        padding: 18px;
+        font-size: 13px;
+    }
+
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.72);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        z-index: 999;
+    }
+
+    .modal-overlay[data-open="true"] { display: flex; }
+
+    .modal {
+        width: min(900px, 96vw);
+        max-height: 86vh;
+        overflow: auto;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        box-shadow: 0 18px 44px var(--shadow);
+        padding: 16px;
+    }
+
+    .modal h3 { margin: 0 0 10px 0; font-size: 18px; }
+    .modal p { margin: 10px 0; color: var(--muted); }
+    .modal .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px; }
+
+</style>
+</head>
+<body>
+
+<nav class="topnav" aria-label="Quick navigation">
+    <div class="wrap">
+        <div class="brand">AI_Algorithms</div>
+        <div class="menu">
+            <button type="button" class="toggle" id="topnav_toggle" aria-expanded="false" aria-controls="topnav_links" onclick="toggleTopNav()">Menu</button>
+            <div class="links" id="topnav_links">
+                <a href="learn.html">Learn</a>
+                <a href="#start">Start</a>
+                <a href="#thinking">Thinking</a>
+                <a href="#commands">Commands</a>
+                <a href="#notes">Notes</a>
+                <a href="#top">Top</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<header id="top">
+    <div class="wrap">
+        <div class="row" style="justify-content: space-between; align-items: baseline;">
+            <div>
+                <h1>AI_Algorithms <span class="pill">local dashboard</span></h1>
+                <p class="subtitle">Offline-friendly shortcuts for this repo: docs, results, and copy/paste CLI commands.</p>
+            </div>
+            <div class="row" style="margin-top: 6px;">
+                <button type="button" onclick="location.href='learn.html'">New Developer Guide</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="wrap">
+    <div class="grid">
+        <section class="card" id="start">
+            <h2>Start Here</h2>
+            <p class="hint">New to this repo? Use the guide and then run eval.</p>
+            <div class="row">
+                <button type="button" onclick="location.href='learn.html'">Open New Developer Guide</button>
+                <button type="button" onclick="location.href='roadmap_table.md'">Open Roadmap</button>
+            </div>
+            <ul>
+                <li>Read the guide, then run <span style="font-family: var(--mono);">py -3 run_eval.py</span> to validate your setup.</li>
+                <li>Use the Notes box to keep handoff context (what you ran, what changed, what passed/failed).</li>
+            </ul>
+        </section>
+
+        <section class="card">
+            <h2>What makes this system different (not an LLM)</h2>
+            <p>This repo implements a deterministic, measurement‑first reasoning loop. It is designed to be auditable and reproducible, not a probabilistic text generator.</p>
+            <ul>
+                <li><strong>Explicit measurements:</strong> scores, constraints, and objective alignment are computed before decisions.</li>
+                <li><strong>Relational substrate:</strong> semantic + 3D data attach to the same measured structure.</li>
+                <li><strong>Auditable outputs:</strong> decision signals, rationale, and schedules are written to files.</li>
+                <li><strong>Determinism‑aware:</strong> fixed timestamps + eval gates protect correctness.</li>
+            </ul>
+        </section>
+
+        <section class="card">
+            <h2>Quick Links</h2>
+            <p>Open these in VS Code for best viewing. Browser links work as plain text.</p>
+            <div class="row">
+                <a href="learn.html">New Developer Guide</a>
+                <a href="TEMP_TRAIL_INDEX.md">TEMP_TRAIL_INDEX</a>
+                <a href="#commands">Commands</a>
+                <a href="#notes">Notes</a>
+                <a href="README.md">README</a>
+                <a href="DESIGN_GOALS.md">DESIGN_GOALS</a>
+                <a href="TUNING_GUIDE.md">TUNING_GUIDE</a>
+                <a href="docs/SECRETS.md">SECRETS</a>
+                <a href="docs/PRODUCTION_ROLLOUT.md">PRODUCTION_ROLLOUT</a>
+                <a href="docs/PROMOTION_PR_TEMPLATE.md">PROMOTION_PR_TEMPLATE</a>
+                <a href="docs/RELEASE_NOTES.md">RELEASE_NOTES</a>
+                <a href="ROLLOUT_REPORT_TEMPLATE.md">ROLLOUT_REPORT_TEMPLATE</a>
+                <a href="dashboard.html">dashboard</a>
+                <a href="AGENT.md">AGENT</a>
+                <a href="ASSESSMENT_PROCEDURE.md">ASSESSMENT_PROCEDURE</a>
+                <a href="BACKUP_PROCEDURE.md">BACKUP_PROCEDURE</a>
+                <a href="config.json">config.json</a>
+                <a href="cli.py">cli.py</a>
+                <a href="run_eval.py">run_eval.py</a>
+                <a href="module_backup.py">module_backup.py</a>
+                <a href="schemas/relational_state.schema.json">relational_state.schema.json</a>
+                <a href="roadmap_table.md">roadmap_table.md</a>
+                <a href="roadmap_table_2.md">roadmap_table_2.md</a>
+            </div>
+
+            <h2 style="margin-top: 14px;">Key Results</h2>
+            <ul>
+                <li><a href="RESULTS_EvalHarness.md">RESULTS_EvalHarness</a></li>
+                <li><a href="RESULTS_Determinism.md">RESULTS_Determinism</a></li>
+                <li><a href="RESULTS_PathSafety.md">RESULTS_PathSafety</a></li>
+                <li><a href="RESULTS_Phase4_Stress.md">RESULTS_Phase4_Stress</a></li>
+                <li><a href="RESULTS_Phase9_MeasurementReport.md">RESULTS_Phase9_MeasurementReport</a></li>
+            </ul>
+
+            <details style="margin-top: 10px;">
+                <summary style="cursor: pointer; color: var(--accent);">All RESULTS_*.md (repo history)</summary>
+                <ul>
+                    <li><a href="RESULTS_AtomicWrites.md">RESULTS_AtomicWrites</a></li>
+                    <li><a href="RESULTS_Bootstrap.md">RESULTS_Bootstrap</a></li>
+                    <li><a href="RESULTS_DataContracts.md">RESULTS_DataContracts</a></li>
+                    <li><a href="RESULTS_Determinism.md">RESULTS_Determinism</a></li>
+                    <li><a href="RESULTS_EvalHarness.md">RESULTS_EvalHarness</a></li>
+                    <li><a href="RESULTS_Indexing.md">RESULTS_Indexing</a></li>
+                    <li><a href="RESULTS_PathSafety.md">RESULTS_PathSafety</a></li>
+                    <li><a href="RESULTS_Phase10_AwarenessPlan.md">RESULTS_Phase10_AwarenessPlan</a></li>
+                    <li><a href="RESULTS_Phase11_EvidenceCapture.md">RESULTS_Phase11_EvidenceCapture</a></li>
+                    <li><a href="RESULTS_Phase13_TogglePolicy.md">RESULTS_Phase13_TogglePolicy</a></li>
+                    <li><a href="RESULTS_Phase14_TypedScheduling.md">RESULTS_Phase14_TypedScheduling</a></li>
+                    <li><a href="RESULTS_Phase15_ReasonChains.md">RESULTS_Phase15_ReasonChains</a></li>
+                    <li><a href="RESULTS_Phase16_ProceduralMemory.md">RESULTS_Phase16_ProceduralMemory</a></li>
+                    <li><a href="RESULTS_Phase3.md">RESULTS_Phase3</a></li>
+                    <li><a href="RESULTS_Phase4.md">RESULTS_Phase4</a></li>
+                    <li><a href="RESULTS_Phase4_Stress.md">RESULTS_Phase4_Stress</a></li>
+                    <li><a href="RESULTS_Phase5.md">RESULTS_Phase5</a></li>
+                    <li><a href="RESULTS_Phase6.md">RESULTS_Phase6</a></li>
+                    <li><a href="RESULTS_Phase6_9.md">RESULTS_Phase6_9</a></li>
+                    <li><a href="RESULTS_Phase7_DescribedInfo.md">RESULTS_Phase7_DescribedInfo</a></li>
+                    <li><a href="RESULTS_Phase8_RepeatProfile.md">RESULTS_Phase8_RepeatProfile</a></li>
+                    <li><a href="RESULTS_Phase9_MeasurementReport.md">RESULTS_Phase9_MeasurementReport</a></li>
+                </ul>
+            </details>
+        </section>
+
+        <section class="card" id="notes">
+            <h2>Notes (saved locally)</h2>
+            <p class="hint">Stored in your browser via localStorage. Good for daily procedures, hypotheses, and next steps.</p>
+            <textarea id="notes" spellcheck="false" placeholder="Examples:
+- Today’s goal
+- Current blockers
+- Commands I ran
+- Metrics or eval outcomes
+"></textarea>
+            <div class="row" style="margin-top: 10px;">
+                <button type="button" onclick="saveNotes()">Save Notes</button>
+                <button type="button" onclick="clearNotes()">Clear</button>
+                <span id="notes_status" class="pill">not saved</span>
+            </div>
+        </section>
+
+        <section class="card" id="thinking">
+            <h2>How the AI Brain thinks (quick learning path)</h2>
+            <p class="hint">If you want the “story” of how this system evolved (and how it reasons today), start here.</p>
+            <ul>
+                <li><strong>Progression index:</strong> <a href="TEMP_TRAIL_INDEX.md">TEMP_TRAIL_INDEX.md</a> (temp trail + recommended reading order)</li>
+                <li><strong>Canonical change log:</strong> <a href="temp_12.md">temp_12.md</a> (what changed, when, and what passed eval)</li>
+                <li><strong>Core thinking loop code:</strong> <a href="module_integration.py">module_integration.py</a> (orchestration) + <a href="module_reasoning.py">module_reasoning.py</a> (synthesis)</li>
+                <li><strong>Correctness & safety:</strong> <a href="module_verifier.py">module_verifier.py</a> + <a href="module_error_resolution.py">module_error_resolution.py</a></li>
+            </ul>
+        </section>
+
+        <section class="card">
+            <h2>Current Task</h2>
+            <p class="hint">This mirrors the list you send to VS Code Agent Mode + desktop Copilot (“Think Deeper”).</p>
+            <ul>
+                <li><a href="roadmap_table_2.md">roadmap_table_2.md</a> (assessment-oriented prioritized task list)</li>
+                <li><strong>Now doing:</strong> Keep roadmap + snapshot docs aligned to current repo state (avoid stale module claims).</li>
+                <li><strong>Owner-only:</strong> keep contacts and private links out of git. See <a href="docs/SECRETS.md">docs/SECRETS.md</a>.</li>
+                <li><strong>Reminder (remove after setup):</strong> create <span style="font-family: var(--mono);">secrets.local.json</span> from <span style="font-family: var(--mono);">secrets.example.json</span>, keep it uncommitted, then click <strong>Load Secrets</strong> to verify the dashboard can display owner-only info locally.</li>
+            </ul>
+            <div class="row" style="margin-top: 10px;">
+                <button type="button" onclick="openModal('modal_secrets')">About Secrets</button>
+                <label style="display: inline-flex; gap: 10px; align-items: center;">
+                    <span class="pill">local-only</span>
+                    <input type="file" id="secrets_file" accept="application/json" style="display:none" onchange="loadSecretsFromFile(event)" />
+                    <button type="button" onclick="document.getElementById('secrets_file').click()">Load Secrets</button>
+                </label>
+            </div>
+            <p class="hint" id="secrets_status">No secrets loaded.</p>
+            <p class="hint">Tip: keep a one-line status update here when you switch tasks.</p>
+        </section>
+
+        <section class="card" id="commands">
+            <h2>Common Commands</h2>
+            <p class="hint">These are safe copy-only helpers. Run in PowerShell from repo root.</p>
+
+            <div class="cmd"><code id="cmd_status">py -3 cli.py status</code><button type="button" onclick="copyCmd('cmd_status')">Copy</button></div>
+            <div class="cmd"><code id="cmd_eval">py -3 run_eval.py</code><button type="button" onclick="copyCmd('cmd_eval')">Copy</button></div>
+            <div class="cmd"><code id="cmd_stress">python cli.py stress --id stress001 --content "keyword good synthesis" --quiet</code><button type="button" onclick="copyCmd('cmd_stress')">Copy</button></div>
+
+            <h2 style="margin-top: 14px;">VS Code</h2>
+            <div class="cmd"><code id="cmd_code_dot">code .</code><button type="button" onclick="copyCmd('cmd_code_dot')">Copy</button></div>
+            <div class="cmd"><code id="cmd_code_roadmap">code roadmap_table_2.md</code><button type="button" onclick="copyCmd('cmd_code_roadmap')">Copy</button></div>
+            <div class="cmd"><code id="cmd_code_dashboard">code index.html</code><button type="button" onclick="copyCmd('cmd_code_dashboard')">Copy</button></div>
+
+            <h2 style="margin-top: 14px;">Determinism</h2>
+            <div class="cmd"><code id="cmd_det_on">py -3 cli.py det-set --on --fixed-timestamp 2025-02-01T00:00:00Z</code><button type="button" onclick="copyCmd('cmd_det_on')">Copy</button></div>
+            <div class="cmd"><code id="cmd_det_off">py -3 cli.py det-set --off</code><button type="button" onclick="copyCmd('cmd_det_off')">Copy</button></div>
+
+            <h2 style="margin-top: 14px;">Policy & GC</h2>
+            <div class="cmd"><code id="cmd_policy_list">py -3 cli.py policy list-presets</code><button type="button" onclick="copyCmd('cmd_policy_list')">Copy</button></div>
+            <div class="cmd"><code id="cmd_policy_dry">py -3 cli.py policy apply --name conservative --dry-run</code><button type="button" onclick="copyCmd('cmd_policy_dry')">Copy</button></div>
+            <div class="cmd"><code id="cmd_gc_preview">py -3 cli.py gc --collectors 50 --temp-days 7 --dry-run</code><button type="button" onclick="copyCmd('cmd_gc_preview')">Copy</button></div>
+            <div class="cmd"><code id="cmd_snapshot">py -3 cli.py snapshot export AI_Brain_snapshot.zip</code><button type="button" onclick="copyCmd('cmd_snapshot')">Copy</button></div>
+
+            <h2 style="margin-top: 14px;">External Backup (Git-only)</h2>
+            <div class="cmd"><code id="cmd_backup">py -3 cli.py backup --archive-root E:\\Archive_AI_Algorithms</code><button type="button" onclick="copyCmd('cmd_backup')">Copy</button></div>
+            <div class="hint">See <a href="BACKUP_PROCEDURE.md">BACKUP_PROCEDURE.md</a> for setup and modes.</div>
+
+            <h2 style="margin-top: 14px;">Rollout Helpers (Optional)</h2>
+            <div class="cmd"><code id="cmd_metrics_dashboard_flags">py -3 scripts\metrics_dashboard.py --reports-dir TemporaryQueue --metrics-file metrics.json</code><button type="button" onclick="copyCmd('cmd_metrics_dashboard_flags')">Copy</button></div>
+            <div class="cmd"><code id="cmd_compare_adaptive_fixed">py -3 scripts\compare_adaptive_vs_fixed.py --use-config --deterministic --json</code><button type="button" onclick="copyCmd('cmd_compare_adaptive_fixed')">Copy</button></div>
+            <div class="cmd"><code id="cmd_sweep_adaptive">py -3 scripts\sweep_adaptive_sampling_params.py --out TemporaryQueue\sweep_results.csv</code><button type="button" onclick="copyCmd('cmd_sweep_adaptive')">Copy</button></div>
+            <div class="cmd"><code id="cmd_sweep_adversarial">py -3 scripts\adversarial_sweep.py --out-dir TemporaryQueue\adversarial_sweep --budget 60 --deterministic</code><button type="button" onclick="copyCmd('cmd_sweep_adversarial')">Copy</button></div>
+
+            <h2 style="margin-top: 14px;">Staging Observation Window <span class="pill">recommended</span></h2>
+            <p class="hint">Run this when you want fast confidence that adaptive sampling + rollback policy behave under realistic runs. Collect the artifacts and review metrics before promotion.</p>
+            <div class="row">
+                <button type="button" onclick="openModal('modal_staging_observation')">What is this?</button>
+                <a href="docs/SWEEP_RUN.md" style="align-self: center;">Sweep runner docs</a>
+                <a href="TUNING_GUIDE.md" style="align-self: center;">Tuning guide</a>
+            </div>
+
+            <div class="cmd"><code id="cmd_staging_pytest_adv">py -3 -m pytest tests\test_adversarial.py -q | tee pytest_adversarial.out</code><button type="button" onclick="copyCmd('cmd_staging_pytest_adv')">Copy</button></div>
+            <div class="cmd"><code id="cmd_staging_eval">py -3 run_eval.py 2>&amp;1 | tee run_eval.out</code><button type="button" onclick="copyCmd('cmd_staging_eval')">Copy</button></div>
+            <div class="cmd"><code id="cmd_staging_metrics">python metrics_dashboard.py --reports-dir TemporaryQueue --metrics-file metrics.json | tee metrics_summary.out</code><button type="button" onclick="copyCmd('cmd_staging_metrics')">Copy</button></div>
+
+            <p class="hint">Optional (if you ran a sweep): verify that <span style="font-family: var(--mono);">sweep_results.csv</span> references real reports and that per-run filenames match the canonical pattern.</p>
+            <div class="cmd"><code id="cmd_staging_verify_sweep">py -3 tools\verify_sweep_outputs.py --sweep-dir TemporaryQueue\adversarial_sweep --json | tee verify_sweep.out</code><button type="button" onclick="copyCmd('cmd_staging_verify_sweep')">Copy</button></div>
+
+            <div class="hint">GitHub Actions note: adding scheduled sweeps (or large parameter grids) can increase Actions usage/minutes depending on your GitHub plan. Recommended default is local runs or on-demand CI only.</div>
+            <div class="hint">Recommendation: keep sweeps and deeper runs local unless you explicitly want CI usage.</div>
+
+            <p id="copy_status" class="hint"></p>
+        </section>
+
+        <section class="card" id="copilot_app">
+            <h2>Copilot App Mirror</h2>
+            <p class="hint">Quick references for the desktop Copilot app workflow (public mirror + attachable files).</p>
+            <ul>
+                <li><a href="public_mirror/README_MIRROR.md">public_mirror/README_MIRROR.md</a> (what to run)</li>
+                <li><a href="public_mirror/PUBLISHING.md">public_mirror/PUBLISHING.md</a> (publish as a public GitHub repo)</li>
+                <li><a href="Copilot_app_Attachments_txt_files_of_py_modules/CopilotApp_Mirror_Bootstrap.md">Copilot_app_Attachments_txt_files_of_py_modules/CopilotApp_Mirror_Bootstrap.md</a> (paste-ready new chat message)</li>
+                <li><a href="Copilot_app_Attachments_txt_files_of_py_modules/CopilotApp_Procedure_PublicMirror_and_Attachments.md">Copilot_app_Attachments_txt_files_of_py_modules/CopilotApp_Procedure_PublicMirror_and_Attachments.md</a> (what to attach + procedure)</li>
+            </ul>
+            <p class="hint">Tip: regenerate mirror with <span style="font-family: var(--mono);">py -3 scripts/create_public_mirror.py</span> (or <span style="font-family: var(--mono);">--profile core_thinking</span> for a larger mirror), then export attachable .txt files with <span style="font-family: var(--mono);">py -3 scripts/export_copilot_app_attachments.py</span>.</p>
+
+            <h2 style="margin-top: 14px;">How to use it</h2>
+            <p class="hint">This is the fastest way to get the desktop Copilot app (or any external reviewer) enough code context to produce a grounded assessment.</p>
+            <ol style="margin: 8px 0 0 18px; color: var(--muted);">
+                <li style="margin: 8px 0;">Build a safe, allowlist-based mirror (choose a profile).</li>
+                <li style="margin: 8px 0;">Export attachment-friendly copies (exports follow <span style="font-family: var(--mono);">public_mirror/mirror_manifest.json</span>).</li>
+                <li style="margin: 8px 0;">Option A (recommended): publish <span style="font-family: var(--mono);">public_mirror/</span> as a temporary public repo.</li>
+                <li style="margin: 8px 0;">Option B (fallback): attach the exported <span style="font-family: var(--mono);">*.txt</span> files directly in Copilot app.</li>
+            </ol>
+
+            <div class="cmd"><code id="cmd_mirror_build_small">py -3 scripts/create_public_mirror.py</code><button type="button" onclick="copyCmd('cmd_mirror_build_small')">Copy</button></div>
+            <div class="cmd"><code id="cmd_mirror_build_core">py -3 scripts/create_public_mirror.py --profile core_thinking</code><button type="button" onclick="copyCmd('cmd_mirror_build_core')">Copy</button></div>
+            <div class="cmd"><code id="cmd_mirror_export">py -3 scripts/export_copilot_app_attachments.py</code><button type="button" onclick="copyCmd('cmd_mirror_export')">Copy</button></div>
+            <div class="cmd"><code id="cmd_mirror_open_exports">explorer Copilot_app_Attachments_txt_files_of_py_modules\exports</code><button type="button" onclick="copyCmd('cmd_mirror_open_exports')">Copy</button></div>
+
+            <details style="margin-top: 10px;">
+                <summary style="cursor: pointer; color: var(--accent);">Which profile should I use?</summary>
+                <ul>
+                    <li><span style="font-family: var(--mono);">adversarial</span>: smallest mirror; fastest to publish/review; focuses on the adversarial harness and core deps.</li>
+                    <li><span style="font-family: var(--mono);">core_thinking</span>: larger mirror for deeper code review; includes <span style="font-family: var(--mono);">module_*.py</span> plus selected docs.</li>
+                </ul>
+                <p class="hint">Both are allowlist-based and intentionally exclude runtime folders like <span style="font-family: var(--mono);">LongTermStore/</span> and <span style="font-family: var(--mono);">TemporaryQueue/</span>.</p>
+            </details>
+
+            <h2 style="margin-top: 14px;">Paste-ready assessment prompt</h2>
+                <p class="hint">Use this with the desktop Copilot app, VS Code Agent Mode, or any LLM to get a grounded assessment tied to actual repo files (mirror-aware, profile-aware).</p>
+                <div class="cmd"><code id="cmd_assess_prompt">You are reviewing an “AI Brain” repo/mirror that is intentionally allowlist-based.
+
+        First, open and summarize:
+        - mirror_manifest.json (authoritative file list + “profile”, e.g. adversarial or core_thinking)
+
+        Then read in this order (skip anything not present in the mirror):
+        - README_MIRROR.md (or README.md)
+        - DESIGN_GOALS.md
+        - TEMP_TRAIL_INDEX.md
+        - temp_12.md
+        - run_eval.py
+        - module_integration.py
+        - module_reasoning.py
+        - module_retrieval.py
+        - module_select.py
+        - module_verifier.py
+        - module_error_resolution.py
+
+        If you can run code, execute and report results:
+        - pytest -q
+        - python run_eval.py
+        - Determinism check: run the same scenario/input twice and confirm equality (or note what differs).
+
+        Deliverables (keep concrete, cite file/function names):
+        1) One-page overview of the end-to-end cycle: storage → measure → retrieve → reason → select → verify/error-resolve → schedule → log
+        2) Where determinism is enforced and how to reproduce a run
+        3) What artifacts are written and where (LongTermStore/ vs TemporaryQueue/), plus any “canonical” cycle artifacts
+        4) 3 prioritized next upgrades that preserve eval-gated, default-off discipline (each with: rationale + suggested file + suggested eval gate)</code><button type="button" onclick="copyCmd('cmd_assess_prompt')">Copy</button></div>
+
+                <h2 style="margin-top: 14px;">Copilot app paste message (mirror URL)</h2>
+                <p class="hint">Paste this into a new desktop Copilot app chat after you publish the mirror as a temporary public repo.</p>
+                <div class="cmd"><code id="cmd_copilot_app_message">You are reviewing a temporary public GitHub mirror of my AI_Algorithms “AI Brain” repo.
+
+        Repo URL: REPLACE_WITH_PUBLIC_REPO_URL
+        Branch: REPLACE_WITH_BRANCH
+
+        Step 1: Read mirror_manifest.json first and tell me the “profile” (adversarial or core_thinking) and the key modules present.
+
+        Step 2 (if execution is available):
+        - Create a venv, install requirements.txt
+        - Run: pytest -q
+        - Run: python run_eval.py
+
+        Step 3: Confirm determinism by running the same input twice (use the repo’s built-in deterministic mode when available) and report whether outputs are identical.
+
+        Step 4: Produce an assessment grounded in file/function names:
+        - Explain the end-to-end thinking cycle.
+        - Note determinism points and persisted artifacts.
+        - Recommend the top 3 safe, additive upgrades that fit an eval-gated workflow.
+
+        Return:
+        - pytest output (or failing traceback)
+        - run_eval output (which gates passed/failed)
+        - If anything fails: file + line + one-line remediation suggestion</code><button type="button" onclick="copyCmd('cmd_copilot_app_message')">Copy</button></div>
+        </section>
+
+        <section class="card">
+            <h2>What this page is for</h2>
+            <ul>
+                <li>Fast jumping into docs/results when you return to the repo.</li>
+                <li>A “project cockpit” for the CLI workflows you actually run.</li>
+                <li>A persistent notes area for procedures, tuning values, and eval outcomes.</li>
+            </ul>
+            <p class="hint">If you later want live status (reading JSON, showing eval summaries), the next step is a tiny local web server endpoint — but this page stays intentionally static.</p>
+        </section>
+    </div>
+</main>
+
+<footer>
+    <div class="wrap">
+        <div>Updated: <span id="updated_on"></span></div>
+        <div class="hint">Tip: in VS Code, use the existing tasks: “AI Brain: status” and “AI Brain: eval”.</div>
+    </div>
+</footer>
+
+<div class="modal-overlay" id="modal_staging_observation" role="dialog" aria-modal="true" aria-label="Staging observation window" onclick="onModalOverlayClick(event, 'modal_staging_observation')">
+    <div class="modal">
+        <h3>Staging Observation Window (what it is)</h3>
+        <p>This is a short, repeatable runbook to validate that the integrated AI Brain stack behaves as expected <em>in realistic runs</em>: adversarial harness behavior, adaptive sampling behavior, and rollback / escalation policy behavior.</p>
+
+        <h3>How it’s part of the AI Brain</h3>
+        <p>The “AI Brain” here is the repo’s end-to-end cycle (storage → retrieval → reasoning → selection → verification/error-resolution → scheduling) surfaced through <span style="font-family: var(--mono);">cli.py</span> and validated by <span style="font-family: var(--mono);">run_eval.py</span>.</p>
+        <p>The observation window runs the same integrated code paths you rely on for real operation, but with deterministic knobs available so you can reproduce and debug regressions.</p>
+
+        <h3>How it pertains to metrics data</h3>
+        <p>During runs, modules can emit counters and values through <span style="font-family: var(--mono);">module_metrics.py</span>, which are flushed to <span style="font-family: var(--mono);">TemporaryQueue/metrics.json</span> (repo convention). Example: rollback-storm escalations increment <span style="font-family: var(--mono);">resolution_rollback_storm_escalations_total</span> in <span style="font-family: var(--mono);">module_error_resolution.py</span>.</p>
+        <p>The command <span style="font-family: var(--mono);">metrics_dashboard.py</span> (wrapper → <span style="font-family: var(--mono);">scripts/metrics_dashboard.py</span>) summarizes those metrics so you can track drift (escalations, sampling behavior, etc.) across repeated staging cycles.</p>
+
+        <h3>What artifacts to keep</h3>
+        <p>For a staging window you typically keep: <span style="font-family: var(--mono);">TemporaryQueue/metrics.json</span>, <span style="font-family: var(--mono);">pytest_adversarial.out</span>, <span style="font-family: var(--mono);">run_eval.out</span>, and (if you run sweeps) <span style="font-family: var(--mono);">TemporaryQueue/adversarial_sweep/sweep_results.csv</span> plus the per-run <span style="font-family: var(--mono);">adversarial_report_*.json</span> files.</p>
+
+        <h3>Where to go next</h3>
+        <p>For a gradual production rollout plan and acceptance thresholds, see <a href="docs/PRODUCTION_ROLLOUT.md">docs/PRODUCTION_ROLLOUT.md</a>. A paste-ready PR template is in <a href="docs/PROMOTION_PR_TEMPLATE.md">docs/PROMOTION_PR_TEMPLATE.md</a>.</p>
+
+        <div class="modal-actions">
+            <button type="button" onclick="closeModal('modal_staging_observation')">Close</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal_secrets" role="dialog" aria-modal="true" aria-label="Secrets and owner-only information" onclick="onModalOverlayClick(event, 'modal_secrets')">
+    <div class="modal">
+        <h3>Secrets / Owner-only information</h3>
+        <p>Owner names, emails, internal URLs, and any credentials should not be committed to git or embedded in this page. If you publish this repo or host this dashboard on a website, anything committed becomes public.</p>
+        <p>Use <a href="docs/SECRETS.md">docs/SECRETS.md</a> and keep a local <span style="font-family: var(--mono);">secrets.local.json</span> on the operator machine (ignored by git). The “Load Secrets” button reads the file locally and only displays it in-memory.</p>
+        <div class="modal-actions">
+            <button type="button" onclick="closeModal('modal_secrets')">Close</button>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    const NOTES_KEY = "AI_Algorithms:index.html:notes";
+    let SECRETS = null;
+
+    function openModal(id) {
+        const el = document.getElementById(String(id || ''));
+        if (!el) return;
+        el.setAttribute('data-open', 'true');
+    }
+
+    function closeModal(id) {
+        const el = document.getElementById(String(id || ''));
+        if (!el) return;
+        el.setAttribute('data-open', 'false');
+    }
+
+    function onModalOverlayClick(evt, id) {
+        // Close if the user clicks outside the modal panel.
+        const target = evt && evt.target ? evt.target : null;
+        if (!target) return;
+        if (target.classList && target.classList.contains('modal-overlay')) {
+            closeModal(id);
+        }
+    }
+
+    document.addEventListener('keydown', function (evt) {
+        if (!evt || evt.key !== 'Escape') return;
+        const open = document.querySelector('.modal-overlay[data-open="true"]');
+        if (open && open.id) closeModal(open.id);
+    });
+
+    function _safeText(v) {
+        if (v === null || v === undefined) return '';
+        return String(v);
+    }
+
+    function renderSecrets() {
+        const status = document.getElementById('secrets_status');
+        if (!status) return;
+        if (!SECRETS || typeof SECRETS !== 'object') {
+            status.textContent = 'No secrets loaded.';
+            return;
+        }
+
+        const owner = (SECRETS.owner && typeof SECRETS.owner === 'object') ? SECRETS.owner : {};
+        const parts = [];
+        if (owner.feature_owner) parts.push('Feature owner: ' + _safeText(owner.feature_owner));
+        if (owner.sre_ci_owner) parts.push('SRE/CI owner: ' + _safeText(owner.sre_ci_owner));
+        if (owner.qa_adversarial_lead) parts.push('QA/Adversarial lead: ' + _safeText(owner.qa_adversarial_lead));
+        if (owner.contact_email) parts.push('Contact: ' + _safeText(owner.contact_email));
+
+        status.textContent = parts.length ? parts.join(' | ') : 'Secrets loaded (no owner fields found).';
+    }
+
+    function loadSecretsFromFile(evt) {
+        try {
+            const input = evt && evt.target ? evt.target : null;
+            const file = input && input.files && input.files.length ? input.files[0] : null;
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function () {
+                try {
+                    SECRETS = JSON.parse(String(reader.result || 'null'));
+                } catch (e) {
+                    SECRETS = null;
+                }
+                renderSecrets();
+            };
+            reader.readAsText(file);
+        } catch (e) {
+            SECRETS = null;
+            renderSecrets();
+        }
+    }
+
+    function toggleTopNav() {
+        const nav = document.querySelector('.topnav');
+        const btn = document.getElementById('topnav_toggle');
+        if (!nav || !btn) return;
+        const isOpen = String(nav.getAttribute('data-open') || 'false') === 'true';
+        const next = (!isOpen);
+        nav.setAttribute('data-open', next ? 'true' : 'false');
+        btn.setAttribute('aria-expanded', next ? 'true' : 'false');
+    }
+
+    function closeTopNav() {
+        const nav = document.querySelector('.topnav');
+        const btn = document.getElementById('topnav_toggle');
+        if (!nav || !btn) return;
+        nav.setAttribute('data-open', 'false');
+        btn.setAttribute('aria-expanded', 'false');
+    }
+
+    function normalizeCopiedText(text) {
+        const raw = String(text || "").replace(/\r\n/g, "\n");
+        let lines = raw.split("\n");
+
+        // Trim leading/trailing blank lines.
+        while (lines.length && String(lines[0]).trim() === "") lines.shift();
+        while (lines.length && String(lines[lines.length - 1]).trim() === "") lines.pop();
+
+        // Strip common indentation from non-empty lines (helps when <code> is indented in HTML).
+        let minIndent = null;
+        for (const line of lines) {
+            if (String(line).trim() === "") continue;
+            const m = String(line).match(/^[ \t]+/);
+            const indent = m ? m[0] : "";
+            if (minIndent === null) minIndent = indent.length;
+            else minIndent = Math.min(minIndent, indent.length);
+        }
+        if (minIndent && minIndent > 0) {
+            lines = lines.map((l) => String(l).startsWith(" ") || String(l).startsWith("\t") ? String(l).slice(minIndent) : String(l));
+        }
+
+        return lines.join("\n");
+    }
+
+    function copyCmd(cmdId) {
+        const el = document.getElementById(cmdId);
+        const textRaw = el ? (el.innerText || el.textContent || "") : "";
+        const text = normalizeCopiedText(textRaw);
+        const status = document.getElementById("copy_status");
+        if (!text) {
+            if (status) status.textContent = "Nothing to copy.";
+            return;
+        }
+
+        if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                if (status) status.textContent = "Copied.";
+            }).catch(() => {
+                if (status) status.textContent = "Copy failed (browser permissions). Select the command text and copy manually.";
+            });
+        } else {
+            if (status) status.textContent = "Clipboard API unavailable. Select the command text and copy manually.";
+        }
+    }
+
+    function loadNotes() {
+        const el = document.getElementById("notes");
+        const saved = localStorage.getItem(NOTES_KEY);
+        if (el && saved) el.value = saved;
+    }
+
+    function saveNotes() {
+        const el = document.getElementById("notes");
+        const status = document.getElementById("notes_status");
+        if (!el) return;
+        localStorage.setItem(NOTES_KEY, el.value || "");
+        if (status) status.textContent = "saved";
+    }
+
+    function clearNotes() {
+        const el = document.getElementById("notes");
+        const status = document.getElementById("notes_status");
+        if (el) el.value = "";
+        localStorage.removeItem(NOTES_KEY);
+        if (status) status.textContent = "cleared";
+    }
+
+    (function init() {
+        const nav = document.querySelector('.topnav');
+        if (nav) nav.setAttribute('data-open', 'false');
+
+        const links = document.querySelectorAll('#topnav_links a');
+        if (links && links.length) {
+            links.forEach((a) => {
+                a.addEventListener('click', () => {
+                    closeTopNav();
+                });
+            });
+        }
+
+        const updated = document.getElementById("updated_on");
+        if (updated) updated.textContent = "2026-01-27";
+        loadNotes();
+
+        const el = document.getElementById("notes");
+        const status = document.getElementById("notes_status");
+        if (el) {
+            el.addEventListener("input", () => {
+                if (status) status.textContent = "not saved";
+            });
+        }
+    })();
+</script>
+</body>
+</html>

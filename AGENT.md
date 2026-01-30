@@ -20,6 +20,17 @@ This file is a persistent guide for any coding agent working in this repository.
    - Keep logic deterministic when possible; avoid nondeterministic timestamps unless gated by determinism settings.
    - After changes, run the existing eval task and record results.
 
+5. **When corrected by the user, capture the correction as procedure.**
+   - If the user points out something you “should have already done,” treat it as a missing checklist item.
+   - First: comply immediately (don’t argue; don’t over-explain).
+   - Then (only if it’s smart and applicable): write a short note in `temp_12.md` describing the correction as a reusable rule.
+   - Finally (only if it genuinely generalizes beyond the current task): update this file (`AGENT.md`) with a brief, future-proof guideline.
+   - Goal: reduce repeated omissions by turning feedback into a deterministic process step.
+
+6. **If options aren’t prioritized, start from the top.**
+   - When offering multiple options and no explicit “importance” ordering is provided, treat the list order as the default priority.
+   - Default action: proceed with the first/top option.
+
 ## When to use the desktop Copilot app (external)
 
 This repo is typically worked on in **VS Code Agent Mode** (local read/write + tasks). The standalone **Microsoft Copilot desktop app** is a separate tool that is useful for review and research.
@@ -50,6 +61,12 @@ Reference docs for the workflow:
 - 3D measurement core is in `AI_Brain/` and should remain cleanly layered.
 - Storage must use safe path resolution (`sanitize_id`, `safe_join`, `resolve_path`) instead of absolute paths.
 
+## Metric Definitions (Agent Memory)
+
+- Synapse (analogy only): metaphor for a discrete thought-connection event (conceptual, not a software module).
+- Neural algorithm activity: code execution that performs thinking-like operations (scoring/selecting/retrieving/integrating).
+- 3D measurement activity: computations tied to relational measurement (constructing relational state, measuring entities/relations, producing measurement reports).
+
 ## Category Positioning (LLM vs. AI Brain)
 
 - This repo is **not** an LLM. It is a deterministic, measurement‑first cognitive loop with file‑backed memory and auditable artifacts.
@@ -62,6 +79,15 @@ Reference docs for the workflow:
 
 - Prefer running the VS Code task “AI Brain: eval”.
 - If a change affects determinism, also run the determinism suite or ensure it still passes in eval.
+
+## “Start AI Brain” (Agent Mode convention)
+
+When the user says **Start** (e.g., “Start”, “Start Project”, “Run workflow”, “Start AI Brain”), treat it as a request to run the repo’s start/init event.
+
+- Preferred agent action: run the VS Code task “AI Brain: init” (runs `cli.py init` via the repo venv).
+- Fallback (no tasks available): run `python cli.py init` (calls `module_integration.initialize_ai_brain()` and ensures workspace state/objectives are present).
+- If the user wants *continuous operation*, follow up by starting a loop (e.g., orchestrator daemon) — do not assume this from “Start” alone.
+- Avoid concurrent writers: don’t run eval/canary while the orchestrator daemon is running.
 
 ## Assessment / Reporting
 

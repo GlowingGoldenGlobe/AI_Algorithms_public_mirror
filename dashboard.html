@@ -1,0 +1,913 @@
+<!--
+AI_Algorithms — Interactive Metrics Dashboard
+
+Offline-friendly:
+- Works with file:// by using file pickers (cannot auto-read local files for security reasons).
+- Optional: run a local server (python -m http.server) to enable relative-path fetch.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI_Algorithms — Dashboard</title>
+  <style>
+    :root {
+      --bg: #0b0d10;
+      --panel: #121621;
+      --panel2: #0f1320;
+      --text: #e7eef8;
+      --muted: #a9b7cc;
+      --accent: #66d9ef;
+      --accent2: #a6e22e;
+      --warn: #fd971f;
+      --bad: #ff6b6b;
+      --border: #2a3243;
+      --shadow: rgba(0, 0, 0, 0.35);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      font-family: var(--sans);
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header {
+      padding: 20px 16px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, #0b0d10 0%, rgba(18,22,33,0.75) 100%);
+    }
+    .wrap { max-width: 1200px; margin: 0 auto; }
+
+    h1 { margin: 0 0 6px 0; font-size: 22px; }
+    .subtitle { margin: 0; color: var(--muted); font-size: 13px; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      padding: 16px;
+    }
+    @media (min-width: 1000px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 10px 24px var(--shadow);
+      overflow: hidden;
+    }
+
+    .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .controls label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    input[type="file"], input[type="text"] {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    button {
+      border: 1px solid var(--border);
+      background: #0d1220;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 12px;
+      cursor: pointer;
+      font-weight: 700;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+    button:hover { border-color: var(--accent); }
+
+    .hint {
+      margin: 6px 0 0 0;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+    @media (min-width: 700px) {
+      .kpis { grid-template-columns: repeat(4, 1fr); }
+    }
+    .kpi {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .kpi .label { color: var(--muted); font-size: 12px; }
+    .kpi .value { font-family: var(--mono); font-size: 18px; margin-top: 6px; }
+
+    .charts {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .chart {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px;
+      min-height: 280px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+    th, td {
+      border-bottom: 1px solid var(--border);
+      padding: 8px 6px;
+      text-align: left;
+      vertical-align: top;
+      word-break: break-word;
+    }
+    th { color: var(--muted); font-weight: 700; }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--muted);
+    }
+    .tag.good { border-color: rgba(166,226,46,0.6); color: var(--accent2); }
+    .tag.bad { border-color: rgba(255,107,107,0.6); color: var(--bad); }
+
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      resize: vertical;
+      border-radius: 12px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      background: #0d1220;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.35;
+      box-sizing: border-box;
+    }
+
+    .footer {
+      padding: 16px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+    }
+  </style>
+  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="row" style="justify-content: space-between;">
+        <div>
+          <h1>AI_Algorithms — Metrics + Adversarial Dashboard</h1>
+          <p class="subtitle">Load metrics + adversarial reports to visualize adaptive sampling and rollback-storm behavior.</p>
+        </div>
+        <div class="row">
+          <a href="index.html" style="font-family: var(--mono); font-size: 12px;">Back to index</a>
+        </div>
+      </div>
+      <p class="hint">
+        Offline note: browsers can’t auto-read local files. Use the file pickers below (works with file://).
+        Optional: run a local server to enable relative-path fetch.
+      </p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="grid">
+      <section class="card">
+        <h2 style="margin:0 0 8px 0; font-size: 16px;">Load Data</h2>
+        <div class="controls">
+          <div>
+            <label for="metricsFile">metrics.json</label>
+            <input id="metricsFile" type="file" accept="application/json" />
+            <div class="hint">Suggested: TemporaryQueue/metrics.json</div>
+          </div>
+
+          <div>
+            <label for="reportsFiles">adversarial_report_*.json (multi-select)</label>
+            <input id="reportsFiles" type="file" accept="application/json" multiple />
+            <div class="hint">Select one or more adversarial reports (S1..S6) to populate tables and histograms.</div>
+          </div>
+
+          <div>
+            <label for="sweepCsv">sweep_results.csv (optional)</label>
+            <input id="sweepCsv" type="file" accept="text/csv" />
+            <div class="hint">Optional: TemporaryQueue/sweep_results.csv</div>
+          </div>
+
+          <div class="row">
+            <button type="button" onclick="renderAll()">Render Dashboard</button>
+            <button type="button" onclick="tryFetchDefaults()">Try Fetch Defaults (server mode)</button>
+            <span id="status" class="tag">idle</span>
+          </div>
+
+          <div>
+            <label for="basePath">Server mode base path (optional)</label>
+            <input id="basePath" type="text" value="." />
+            <div class="hint">
+              If you serve the repo (e.g. python -m http.server), this attempts to fetch
+              ./TemporaryQueue/metrics.json and adversarial_report_*.json (only known names).
+              For file:// usage, prefer the file pickers.
+            </div>
+          </div>
+        </div>
+
+        <div class="kpis" id="kpis"></div>
+      </section>
+
+      <section class="card">
+        <h2 style="margin:0 0 8px 0; font-size: 16px;">Charts</h2>
+        <div class="charts">
+          <div class="chart" id="chartCounters"></div>
+          <div class="chart" id="chartHistogram"></div>
+          <div class="chart" id="chartPie"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 style="margin:0 0 8px 0; font-size: 16px;">Escalation Events</h2>
+        <div class="hint">Scans loaded adversarial reports for escalation signals (e.g., task.escalated, validation.result == "escalated").</div>
+        <div id="escalationEmpty" class="hint" style="display:none; margin-top:10px;">No escalation events found in loaded reports.</div>
+        <div style="overflow:auto;">
+          <table id="escalationTable" aria-label="Escalation events">
+            <thead>
+              <tr>
+                <th>report_file</th>
+                <th>scenario_id</th>
+                <th>task_id</th>
+                <th>retry_count</th>
+                <th>reason</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 style="margin:0 0 8px 0; font-size: 16px;">Per-Scenario Summary</h2>
+        <div style="overflow:auto;">
+          <table id="scenarioTable" aria-label="Scenario summary">
+            <thead>
+              <tr>
+                <th>scenario_id</th>
+                <th>pass/fail</th>
+                <th>sample_count (n)</th>
+                <th>deterministic_seed</th>
+                <th>report_file</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card" style="grid-column: 1 / -1;">
+        <h2 style="margin:0 0 8px 0; font-size: 16px;">Raw Metrics + Downloads</h2>
+        <div class="row" style="justify-content: space-between;">
+          <div class="hint">Raw metrics JSON is shown below for copy/paste and sanity checks.</div>
+          <div class="row">
+            <a id="downloadSweep" href="#" style="display:none; font-family: var(--mono); font-size: 12px;">Download loaded sweep CSV</a>
+          </div>
+        </div>
+        <textarea id="rawMetrics" spellcheck="false" placeholder="Load metrics.json to see raw content..."></textarea>
+      </section>
+
+      <section class="card" style="grid-column: 1 / -1;">
+        <h2 style="margin:0 0 8px 0; font-size: 16px;">Live Qty Snapshot (ai_brain_metrics)</h2>
+        <div class="hint">
+          Server mode only: this fetches <span style="font-family: var(--mono);">TemporaryQueue/ai_brain_metrics_live.json</span>
+          (written by <span style="font-family: var(--mono);">scripts/ai_brain_metrics.py --watch</span>).
+        </div>
+        <div class="row" style="margin-top: 10px;">
+          <button type="button" onclick="fetchLiveQtyOnce()">Fetch Live Snapshot</button>
+          <button type="button" onclick="toggleLiveQty()">Toggle Auto-Refresh</button>
+          <label style="font-family: var(--mono); font-size: 12px;">
+            interval_sec
+            <input id="liveQtyInterval" type="text" value="60" style="width:120px; margin-left:6px;" />
+          </label>
+          <span id="liveQtyStatus" class="tag">off</span>
+        </div>
+        <textarea id="rawLiveQty" spellcheck="false" placeholder="Click Fetch Live Snapshot (server mode) ..."></textarea>
+      </section>
+    </div>
+  </main>
+
+  <div class="footer">
+    <div class="wrap">
+      <div>Tip: Use index.html for copy/paste commands. This page is read-only and safe offline.</div>
+    </div>
+  </div>
+
+  <script>
+    const DEFAULT_COUNTER_KEYS = [
+      'resolution_adaptive_used_total',
+      'resolution_adaptive_samples_total',
+      'resolution_adaptive_early_stop_total',
+      'resolution_fixed_samples_total',
+      'resolution_rollback_storm_escalations_total'
+    ];
+
+    function setStatus(text, kind='') {
+      const el = document.getElementById('status');
+      if (!el) return;
+      el.textContent = text;
+      el.className = 'tag' + (kind ? (' ' + kind) : '');
+    }
+
+    function safeNumber(x) {
+      const n = Number(x);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function get(obj, path, fallback=null) {
+      try {
+        let cur = obj;
+        for (const key of path) {
+          if (cur == null) return fallback;
+          cur = cur[key];
+        }
+        return (cur === undefined) ? fallback : cur;
+      } catch {
+        return fallback;
+      }
+    }
+
+    function detectMetricsRoot(payload) {
+      if (payload && typeof payload === 'object') {
+        const m = payload.metrics;
+        if (m && typeof m === 'object') return m;
+      }
+      return payload;
+    }
+
+    function extractScenarioId(report, fallbackName='') {
+      return (
+        get(report, ['scenario_id'], null) ||
+        get(report, ['scenario'], null) ||
+        get(report, ['id'], null) ||
+        get(report, ['task', 'scenario_id'], null) ||
+        fallbackName ||
+        'unknown'
+      );
+    }
+
+    function extractTaskId(report) {
+      return (
+        get(report, ['task_id'], null) ||
+        get(report, ['task', 'task_id'], null) ||
+        get(report, ['task', 'id'], null) ||
+        get(report, ['task', 'target_record_id'], null) ||
+        ''
+      );
+    }
+
+    function extractValidation(report) {
+      return (
+        get(report, ['validation'], null) ||
+        get(report, ['task', 'validation'], null) ||
+        null
+      );
+    }
+
+    function extractN(report) {
+      const v = extractValidation(report);
+      const n = get(v || {}, ['n'], null);
+      return Number.isFinite(Number(n)) ? Number(n) : null;
+    }
+
+    function extractSeed(report) {
+      const v = extractValidation(report) || {};
+      return (
+        get(report, ['deterministic_seed'], null) ||
+        get(v, ['seed'], null) ||
+        get(report, ['task', 'deterministic_seed'], null) ||
+        ''
+      );
+    }
+
+    function extractPassFail(report) {
+      const v = extractValidation(report) || {};
+      const status = String(get(report, ['status'], '') || get(report, ['task', 'status'], '') || '').toLowerCase();
+      const result = String(get(v, ['result'], '') || '').toLowerCase();
+
+      if (status.includes('fail') || result.includes('fail')) return 'FAIL';
+      if (status.includes('pass') || result.includes('pass')) return 'PASS';
+
+      // Heuristic: if a boolean exists.
+      const ok = get(report, ['ok'], null);
+      if (ok === true) return 'PASS';
+      if (ok === false) return 'FAIL';
+
+      // Fallback: if result is escalated.
+      if (result.includes('escal')) return 'ESCALATED';
+
+      return status ? status.toUpperCase() : (result ? result.toUpperCase() : 'UNKNOWN');
+    }
+
+    function extractEscalation(report) {
+      const v = extractValidation(report) || {};
+      const escalated = (
+        get(report, ['task', 'escalated'], null) === true ||
+        get(report, ['escalated'], null) === true ||
+        String(get(v, ['result'], '') || '').toLowerCase() === 'escalated' ||
+        String(get(report, ['task', 'status'], '') || '').toLowerCase() === 'needs_review'
+      );
+
+      const retryCount = (
+        get(report, ['task', 'retry_count'], null) ||
+        get(report, ['retry_count'], null) ||
+        get(report, ['task', 'attempts'], null) ||
+        ''
+      );
+
+      const reason = (
+        get(report, ['task', 'escalation_reason'], null) ||
+        get(report, ['escalation_reason'], null) ||
+        get(report, ['reason'], null) ||
+        get(v, ['reason'], null) ||
+        ''
+      );
+
+      return { escalated: Boolean(escalated), retryCount, reason };
+    }
+
+    async function readJsonFile(file) {
+      const text = await file.text();
+      return JSON.parse(text);
+    }
+
+    async function readTextFile(file) {
+      return await file.text();
+    }
+
+    function renderKpis(metrics, reports) {
+      const adaptiveUsed = safeNumber(metrics['resolution_adaptive_used_total']);
+      const adaptiveSamples = safeNumber(metrics['resolution_adaptive_samples_total']);
+      const earlyStop = safeNumber(metrics['resolution_adaptive_early_stop_total']);
+      const escalations = safeNumber(metrics['resolution_rollback_storm_escalations_total']);
+
+      const avgAdaptiveN = adaptiveUsed > 0 ? (adaptiveSamples / adaptiveUsed) : 0;
+      const earlyStopRate = adaptiveUsed > 0 ? (earlyStop / adaptiveUsed) : 0;
+
+      // From reports: average n when present.
+      const ns = reports.map(r => extractN(r.data)).filter(n => n != null);
+      const avgReportN = ns.length ? (ns.reduce((a,b)=>a+b,0)/ns.length) : 0;
+
+      const kpis = [
+        { label: 'adaptive_used_total', value: String(Math.trunc(adaptiveUsed)) },
+        { label: 'avg_samples_per_validation', value: (avgReportN ? avgReportN.toFixed(2) : avgAdaptiveN.toFixed(2)) },
+        { label: 'early_stop_rate', value: earlyStopRate.toFixed(3) },
+        { label: 'escalations_total', value: String(Math.trunc(escalations)) },
+      ];
+
+      const el = document.getElementById('kpis');
+      if (!el) return;
+      el.innerHTML = '';
+      for (const k of kpis) {
+        const d = document.createElement('div');
+        d.className = 'kpi';
+        d.innerHTML = `<div class="label">${k.label}</div><div class="value">${k.value}</div>`;
+        el.appendChild(d);
+      }
+    }
+
+    function renderCountersChart(metrics) {
+      const keys = DEFAULT_COUNTER_KEYS;
+      const values = keys.map(k => safeNumber(metrics[k] || 0));
+
+      const trace = {
+        x: keys,
+        y: values,
+        type: 'bar',
+        marker: { color: '#66d9ef' }
+      };
+
+      const layout = {
+        title: { text: 'Metrics counters (metrics.json)', font: { color: '#e7eef8', size: 14 } },
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        font: { color: '#e7eef8' },
+        margin: { l: 40, r: 10, t: 40, b: 90 },
+        xaxis: { tickangle: -25, automargin: true },
+        yaxis: { automargin: true }
+      };
+
+      Plotly.newPlot('chartCounters', [trace], layout, {responsive: true, displayModeBar: false});
+    }
+
+    function renderHistogram(reports) {
+      const ns = reports.map(r => extractN(r.data)).filter(n => n != null);
+      const trace = {
+        x: ns,
+        type: 'histogram',
+        marker: { color: '#a6e22e' },
+        nbinsx: 20
+      };
+
+      const layout = {
+        title: { text: 'Sample count distribution (from adversarial reports)', font: { color: '#e7eef8', size: 14 } },
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        font: { color: '#e7eef8' },
+        margin: { l: 40, r: 10, t: 40, b: 40 },
+        xaxis: { title: 'n', automargin: true },
+        yaxis: { title: 'count', automargin: true }
+      };
+
+      Plotly.newPlot('chartHistogram', [trace], layout, {responsive: true, displayModeBar: false});
+    }
+
+    function renderPie(metrics) {
+      const used = safeNumber(metrics['resolution_adaptive_used_total']);
+      const early = safeNumber(metrics['resolution_adaptive_early_stop_total']);
+      const nonEarly = Math.max(0, used - early);
+
+      const trace = {
+        labels: ['early_stop', 'non_early_stop'],
+        values: [early, nonEarly],
+        type: 'pie',
+        marker: { colors: ['#fd971f', '#66d9ef'] }
+      };
+
+      const layout = {
+        title: { text: 'Early stop vs non-early (from metrics)', font: { color: '#e7eef8', size: 14 } },
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        font: { color: '#e7eef8' },
+        margin: { l: 10, r: 10, t: 40, b: 10 },
+        showlegend: true
+      };
+
+      Plotly.newPlot('chartPie', [trace], layout, {responsive: true, displayModeBar: false});
+    }
+
+    function renderEscalationTable(reports) {
+      const tbody = document.querySelector('#escalationTable tbody');
+      const empty = document.getElementById('escalationEmpty');
+      if (!tbody || !empty) return;
+
+      tbody.innerHTML = '';
+      const rows = [];
+
+      for (const r of reports) {
+        const sid = extractScenarioId(r.data, r.name);
+        const taskId = extractTaskId(r.data);
+        const esc = extractEscalation(r.data);
+        if (!esc.escalated) continue;
+
+        rows.push({
+          file: r.name,
+          scenario: sid,
+          taskId,
+          retry: esc.retryCount,
+          reason: String(esc.reason || '').slice(0, 160)
+        });
+      }
+
+      if (!rows.length) {
+        empty.style.display = 'block';
+        return;
+      }
+
+      empty.style.display = 'none';
+      for (const row of rows) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(row.file)}</td>
+          <td>${escapeHtml(String(row.scenario))}</td>
+          <td>${escapeHtml(String(row.taskId || ''))}</td>
+          <td>${escapeHtml(String(row.retry || ''))}</td>
+          <td>${escapeHtml(String(row.reason || ''))}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function renderScenarioTable(reports) {
+      const tbody = document.querySelector('#scenarioTable tbody');
+      if (!tbody) return;
+
+      tbody.innerHTML = '';
+      const rows = [];
+
+      for (const r of reports) {
+        const sid = extractScenarioId(r.data, r.name);
+        const pf = extractPassFail(r.data);
+        const n = extractN(r.data);
+        const seed = extractSeed(r.data);
+
+        rows.push({
+          scenario: sid,
+          pf,
+          n: (n == null ? '' : String(n)),
+          seed: (seed == null ? '' : String(seed)),
+          file: r.name
+        });
+      }
+
+      rows.sort((a,b) => String(a.scenario).localeCompare(String(b.scenario)));
+
+      for (const row of rows) {
+        const tagClass = (String(row.pf).toUpperCase().includes('PASS')) ? 'good' : (String(row.pf).toUpperCase().includes('FAIL') ? 'bad' : '');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(String(row.scenario))}</td>
+          <td><span class="tag ${tagClass}">${escapeHtml(String(row.pf))}</span></td>
+          <td>${escapeHtml(String(row.n))}</td>
+          <td>${escapeHtml(String(row.seed))}</td>
+          <td>${escapeHtml(String(row.file))}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function renderRawMetrics(rawText) {
+      const ta = document.getElementById('rawMetrics');
+      if (!ta) return;
+      ta.value = rawText || '';
+    }
+
+    function renderRawLiveQty(rawText) {
+      const ta = document.getElementById('rawLiveQty');
+      if (!ta) return;
+      ta.value = rawText || '';
+    }
+
+    function setupSweepDownload(text) {
+      const link = document.getElementById('downloadSweep');
+      if (!link) return;
+      if (!text) {
+        link.style.display = 'none';
+        link.href = '#';
+        return;
+      }
+      const blob = new Blob([text], {type: 'text/csv'});
+      const url = URL.createObjectURL(blob);
+      link.href = url;
+      link.download = 'sweep_results.csv';
+      link.style.display = 'inline-block';
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    async function loadFromPickers() {
+      const metricsEl = document.getElementById('metricsFile');
+      const reportsEl = document.getElementById('reportsFiles');
+      const sweepEl = document.getElementById('sweepCsv');
+
+      let metricsPayload = {};
+      let metricsRawText = '';
+      let reports = [];
+      let sweepText = '';
+
+      if (metricsEl && metricsEl.files && metricsEl.files.length) {
+        const file = metricsEl.files[0];
+        metricsRawText = await file.text();
+        try {
+          metricsPayload = JSON.parse(metricsRawText);
+        } catch {
+          metricsPayload = {};
+        }
+      }
+
+      if (reportsEl && reportsEl.files && reportsEl.files.length) {
+        for (const f of reportsEl.files) {
+          try {
+            const data = await readJsonFile(f);
+            reports.push({ name: f.name, data });
+          } catch {
+            // skip
+          }
+        }
+      }
+
+      if (sweepEl && sweepEl.files && sweepEl.files.length) {
+        sweepText = await readTextFile(sweepEl.files[0]);
+      }
+
+      return { metricsPayload, metricsRawText, reports, sweepText };
+    }
+
+    async function tryFetchDefaults() {
+      // This only works in server mode (http://) due to browser security.
+      // We cannot list directories, so we attempt a small set of known filenames.
+      setStatus('fetching...', '');
+
+      const base = (document.getElementById('basePath')?.value || '.').replace(/\/+$/, '');
+      const candidates = [
+        `${base}/TemporaryQueue/metrics.json`,
+        `${base}/metrics.json`,
+      ];
+
+      const liveQtyCandidates = [
+        `${base}/TemporaryQueue/ai_brain_metrics_live.json`,
+      ];
+
+      const reportCandidates = [
+        `${base}/adversarial_report_S1_small_noise.json`,
+        `${base}/adversarial_report_S2_large_outlier.json`,
+        `${base}/adversarial_report_S3_case.json`,
+        `${base}/adversarial_report_S4_case.json`,
+        `${base}/adversarial_report_S5_case.json`,
+        `${base}/adversarial_report_S6_case.json`,
+      ];
+
+      async function tryFetchJson(url) {
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) return null;
+        return await r.json();
+      }
+
+      let metricsPayload = {};
+      let metricsRawText = '';
+      for (const url of candidates) {
+        try {
+          const r = await fetch(url, { cache: 'no-store' });
+          if (!r.ok) continue;
+          metricsRawText = await r.text();
+          metricsPayload = JSON.parse(metricsRawText);
+          break;
+        } catch {
+          // continue
+        }
+      }
+
+      let liveQtyRawText = '';
+      for (const url of liveQtyCandidates) {
+        try {
+          const r = await fetch(url, { cache: 'no-store' });
+          if (!r.ok) continue;
+          liveQtyRawText = await r.text();
+          break;
+        } catch {
+          // continue
+        }
+      }
+
+      const reports = [];
+      for (const url of reportCandidates) {
+        try {
+          const data = await tryFetchJson(url);
+          if (!data) continue;
+          const name = url.split('/').slice(-1)[0];
+          reports.push({ name, data });
+        } catch {
+          // continue
+        }
+      }
+
+      // Attempt sweep csv.
+      let sweepText = '';
+      try {
+        const r = await fetch(`${base}/TemporaryQueue/sweep_results.csv`, { cache: 'no-store' });
+        if (r.ok) sweepText = await r.text();
+      } catch {
+        // ignore
+      }
+
+      if (!metricsRawText && !reports.length) {
+        setStatus('fetch failed', 'bad');
+        alert('Fetch defaults failed. Use file pickers, or run a local server (python -m http.server) from repo root.');
+        return;
+      }
+
+      window.__loaded = { metricsPayload, metricsRawText, reports, sweepText, liveQtyRawText };
+      setStatus('fetched', 'good');
+      renderFromLoaded(window.__loaded);
+    }
+
+    function renderFromLoaded(loaded) {
+      const metrics = detectMetricsRoot(loaded.metricsPayload || {}) || {};
+      const reports = loaded.reports || [];
+
+      renderKpis(metrics, reports);
+      renderCountersChart(metrics);
+      renderHistogram(reports);
+      renderPie(metrics);
+      renderEscalationTable(reports);
+      renderScenarioTable(reports);
+      renderRawMetrics(loaded.metricsRawText || '');
+      setupSweepDownload(loaded.sweepText || '');
+      renderRawLiveQty(loaded.liveQtyRawText || '');
+
+      setStatus('rendered', 'good');
+    }
+
+    let __liveQtyTimer = null;
+
+    function _baseForFetch() {
+      return (document.getElementById('basePath')?.value || '.').replace(/\/+$/, '');
+    }
+
+    async function fetchLiveQtyOnce() {
+      const base = _baseForFetch();
+      const url = `${base}/TemporaryQueue/ai_brain_metrics_live.json`;
+      const statusEl = document.getElementById('liveQtyStatus');
+      try {
+        if (statusEl) { statusEl.textContent = 'fetching...'; statusEl.className = 'tag'; }
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) throw new Error('fetch failed');
+        const txt = await r.text();
+        renderRawLiveQty(txt);
+        if (statusEl) { statusEl.textContent = 'ok'; statusEl.className = 'tag good'; }
+      } catch {
+        if (statusEl) { statusEl.textContent = 'error'; statusEl.className = 'tag bad'; }
+      }
+    }
+
+    function toggleLiveQty() {
+      const statusEl = document.getElementById('liveQtyStatus');
+      const intervalEl = document.getElementById('liveQtyInterval');
+      if (__liveQtyTimer) {
+        clearInterval(__liveQtyTimer);
+        __liveQtyTimer = null;
+        if (statusEl) { statusEl.textContent = 'off'; statusEl.className = 'tag'; }
+        return;
+      }
+
+      let intervalSec = 60;
+      try {
+        intervalSec = Math.max(1, Math.min(3600, Math.trunc(Number(intervalEl?.value || 60))));
+      } catch {
+        intervalSec = 60;
+      }
+      if (intervalEl) intervalEl.value = String(intervalSec);
+
+      fetchLiveQtyOnce();
+      __liveQtyTimer = setInterval(fetchLiveQtyOnce, intervalSec * 1000);
+      if (statusEl) { statusEl.textContent = `on (${intervalSec}s)`; statusEl.className = 'tag good'; }
+    }
+
+    async function renderAll() {
+      setStatus('loading...', '');
+      try {
+        const loaded = await loadFromPickers();
+        window.__loaded = loaded;
+        renderFromLoaded(loaded);
+      } catch (e) {
+        console.error(e);
+        setStatus('error', 'bad');
+        alert('Error rendering dashboard. Check console for details.');
+      }
+    }
+
+    (function init() {
+      setStatus('idle', '');
+    })();
+  </script>
+</body>
+</html>

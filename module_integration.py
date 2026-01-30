@@ -699,7 +699,10 @@ def RelationalMeasurement(data_id, content, category="semantic", subject_id="def
             with open(file_path, 'r+', encoding='utf-8') as f:
                 rec = json.load(f)
                 proc_ts = fixed_ts if (deterministic_mode and fixed_ts) else datetime.now().isoformat()
-                rec.setdefault('matched_procedures', []).append({'id': mp['procedure'].get('id'), 'ts': proc_ts})
+                existing_mp = rec.get('matched_procedures')
+                if not isinstance(existing_mp, list):
+                    rec['matched_procedures'] = []
+                rec['matched_procedures'].append({'id': mp['procedure'].get('id'), 'ts': proc_ts})
                 f.seek(0)
                 json.dump(rec, f, ensure_ascii=False, indent=2)
                 f.truncate()
@@ -904,7 +907,9 @@ def RelationalMeasurement(data_id, content, category="semantic", subject_id="def
             except Exception:
                 pass
 
-            chains = rec.setdefault('reason_chain', [])
+            chains = rec.get('reason_chain')
+            if not isinstance(chains, list):
+                chains = []
             chains.append(reason_chain[0])
             rec['reason_chain'] = chains[-50:]
             top_sel = (sel_rank[0] if (isinstance(sel_rank, list) and sel_rank) else {})
@@ -1486,6 +1491,10 @@ def RelationalMeasurement(data_id, content, category="semantic", subject_id="def
                             want_types.append(wt)
             except Exception:
                 want_types = []
+            try:
+                want_types = sorted(set([w for w in want_types if isinstance(w, str) and w]))
+            except Exception:
+                want_types = []
             want_types = want_types[:10]
 
             pending_types: list[str] = []
@@ -1502,6 +1511,25 @@ def RelationalMeasurement(data_id, content, category="semantic", subject_id="def
             except Exception:
                 pending_types = []
             pending_types = sorted(set(pending_types))[:20]
+
+            # Phase A (extended): deterministic, bounded outcome summary to aid review.
+            try:
+                advisory_summary['needs_error_resolution'] = bool(need_err_for_advisory)
+                advisory_summary['injected_error_resolution'] = bool(injected_error_resolution)
+                advisory_summary['pending_activity_types'] = list(pending_types)
+                advisory_summary['want_types'] = list(want_types)
+
+                counts: dict[str, int] = {}
+                for t in completed_types:
+                    if not isinstance(t, str) or not t:
+                        continue
+                    counts[t] = int(counts.get(t, 0)) + 1
+                # Keep bounded and stable.
+                advisory_summary['completed_counts_by_type'] = {
+                    k: int(counts[k]) for k in sorted(counts.keys())[:20]
+                }
+            except Exception:
+                pass
 
             trace = {
                 'plan_id': str((plan or {}).get('plan_id') or ''),
@@ -1796,6 +1824,52 @@ def RelationalMeasurement(data_id, content, category="semantic", subject_id="def
                 dt2['activity_cycle_trace'] = tlist
             tlist.append(trace)
             dt2['activity_cycle_trace'] = tlist[-trace_cap:]
+
+            # Trace normalization: a canonical, bounded pointer map for reviewers.
+            try:
+                dt2['trace_index'] = {
+                    'schema_version': '1.0',
+                    'cycle_id': str(cycle_id or ''),
+                    'fixed_timestamp': str(fixed_ts) if (deterministic_mode and fixed_ts) else None,
+                    'counts': {
+                        'activity_cycle_trace': int(len(dt2.get('activity_cycle_trace') or [])),
+                        'cycle_artifacts': int(len(dt2.get('cycle_artifacts') or [])) if isinstance(dt2.get('cycle_artifacts'), list) else 0,
+                    },
+                    'paths': [
+                        {
+                            'name': 'cycle_artifact',
+                            'path': 'relational_state.decision_trace.cycle_artifact',
+                            'present': bool(isinstance(dt2.get('cycle_artifact'), dict)),
+                        },
+                        {
+                            'name': 'cycle_artifacts',
+                            'path': 'relational_state.decision_trace.cycle_artifacts',
+                            'present': bool(isinstance(dt2.get('cycle_artifacts'), list)),
+                        },
+                        {
+                            'name': 'activity_cycle_trace',
+                            'path': 'relational_state.decision_trace.activity_cycle_trace',
+                            'present': bool(isinstance(dt2.get('activity_cycle_trace'), list)),
+                        },
+                        {
+                            'name': 'next_steps_from_cycle',
+                            'path': 'relational_state.decision_trace.next_steps_from_cycle',
+                            'present': bool(isinstance(dt2.get('next_steps_from_cycle'), list)),
+                        },
+                        {
+                            'name': 'cycle_outcomes',
+                            'path': 'relational_state.decision_trace.cycle_outcomes',
+                            'present': bool(isinstance(dt2.get('cycle_outcomes'), dict)),
+                        },
+                        {
+                            'name': 'objective_influence_metrics',
+                            'path': 'relational_state.decision_trace.objective_influence_metrics',
+                            'present': bool(isinstance(dt2.get('objective_influence_metrics'), dict)),
+                        },
+                    ],
+                }
+            except Exception:
+                pass
 
             from module_storage import _atomic_write_json
 

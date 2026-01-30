@@ -6,9 +6,9 @@
       "sha256": "228edd52dfa014b2229fcc95de123948d3f122d99a9772d74f6a286eb0f8a885"
     },
     {
-      "bytes": 4040,
+      "bytes": 6116,
       "path": "AGENT.md",
-      "sha256": "ad393018fd93a7b699d78cd8ed55e4382428ae752c1fb5e992c725ec8aff937b"
+      "sha256": "3c0ca2f42f653378b4f7a36d4eca184d67135b37fd583ec566d2e07b321392bc"
     },
     {
       "bytes": 3068,
@@ -36,6 +36,11 @@
       "sha256": "c1813298478dfb95196716a96fdbf4423903064f8f084cabdc1526ef283e0dac"
     },
     {
+      "bytes": 3033,
+      "path": "COPILOT.md",
+      "sha256": "c1813298478dfb95196716a96fdbf4423903064f8f084cabdc1526ef283e0dac"
+    },
+    {
       "bytes": 3070,
       "path": "DESIGN_GOALS.md",
       "sha256": "ed9dfa7ef2459fe193fec72fee46fa7bc264c9a4baeacca97d5dfa3739a122bb"
@@ -46,9 +51,9 @@
       "sha256": "b559d9177877e4716af4dc7eea8030659a9b0edac2957d75d2ab6a323921af66"
     },
     {
-      "bytes": 53589,
+      "bytes": 57759,
       "path": "README.md",
-      "sha256": "827531513d0051927033b46ac02c48aebef5f1f7307b6aaa605b569501eecfa8"
+      "sha256": "6600346ce6898063386d281d4ed4aba22cb68141d7b7e30d6b3f15edce0b0a63"
     },
     {
       "bytes": 1733,
@@ -76,9 +81,9 @@
       "sha256": "03c5dbb278069885894be1311ac8d7ed16575a21433f1abf2db67323a96ea690"
     },
     {
-      "bytes": 15559,
+      "bytes": 17272,
       "path": "TUNING_GUIDE.md",
-      "sha256": "d4fae00653bd939e64be168300216753ed081c4b0e5972bcf265940fdd463769"
+      "sha256": "ff4da43774c17af3d46dc5275695d9cb3c9bf655ffd9a5772ebdb644e358fc12"
     },
     {
       "bytes": 3810,
@@ -86,14 +91,24 @@
       "sha256": "038d9ba1aa2ce0469ce6933b7a5a7f605681d207400d58678019b5b735cc36f7"
     },
     {
-      "bytes": 43201,
+      "bytes": 50882,
       "path": "cli.py",
-      "sha256": "21cc74b3d636f1e7bce46b0b8aa9d23015d3aa10173a3bb80b2188b41c746f88"
+      "sha256": "7bfd13430616395f0c8afe9911efe49c7d81132b9aea2a3723d5053299dfcd04"
     },
     {
       "bytes": 591,
       "path": "config.json",
       "sha256": "195e9fdbad273188d4f721701e3cf02fed581f1b56fa212759cf9d034305cacd"
+    },
+    {
+      "bytes": 30336,
+      "path": "dashboard.html",
+      "sha256": "496a28fbc194ed2bef6f79fa79a9167c83320ce20082ff7d558e1fc82acee395"
+    },
+    {
+      "bytes": 1081,
+      "path": "dashboard_readme.txt",
+      "sha256": "8a51abb81a48b3d2274006c579bcb5d58318b553d1a464a88a6cb17ebcfdae7e"
     },
     {
       "bytes": 3085,
@@ -124,6 +139,16 @@
       "bytes": 2737,
       "path": "docs/SWEEP_RUN.md",
       "sha256": "e7028eae1be633305e79e1ee0b5a5bc26a1768f32441adaa4bb81bb7259194b9"
+    },
+    {
+      "bytes": 43056,
+      "path": "index.html",
+      "sha256": "773093401f6a2de8a7b4d856aed9cfe9aa73d2cac67cb07ee4b6f2bfe3c50855"
+    },
+    {
+      "bytes": 41910,
+      "path": "learn.html",
+      "sha256": "c26d956673c32eb7d2b7b7a9f002b140342973eec17c6a5efc406bbfe8e66704"
     },
     {
       "bytes": 660,
@@ -161,9 +186,9 @@
       "sha256": "99de19d78fdfb6c756afe8a4a9f170a5a60b2066a7d633b2488c807f5bfe3c5c"
     },
     {
-      "bytes": 18431,
+      "bytes": 18714,
       "path": "module_collector.py",
-      "sha256": "98cb44709340f46c9d2a88d051f2e2e7024b1437a2febfc56cabaf8780765ff8"
+      "sha256": "9772b0caaab58da6b4c5b6c81eca544ea30971ec21d0797e1dfa223127bc3799"
     },
     {
       "bytes": 5547,
@@ -196,14 +221,19 @@
       "sha256": "b37bcc7e5edb095e281f543418f0a8a7655baab2101a3f41fab7a0e2b805bf8e"
     },
     {
+      "bytes": 6676,
+      "path": "module_hardware_metrics.py",
+      "sha256": "7cc9bfb72368a97a7d6801085c9b03de5c5ad259a176ae2dc25bb898f1dd31b6"
+    },
+    {
       "bytes": 193,
       "path": "module_identity.py",
       "sha256": "7dd281d6b033bd7799d84ac15d9d7878e321fed6016ab58bb50ddc8344fd829a"
     },
     {
-      "bytes": 116090,
+      "bytes": 120007,
       "path": "module_integration.py",
-      "sha256": "232251ec5e426edace601968fb0ba9e0f6f411546b41766e3191fc1cc31dbb6f"
+      "sha256": "47de11ac44aa992a22d4a11ac4136b6109709a32680db47c817d54ae527a2f59"
     },
     {
       "bytes": 8689,
@@ -251,9 +281,9 @@
       "sha256": "30f1e6a856d4b95c98b4c07cd614e966bbaf95eabd752a101d36d739b4f3779b"
     },
     {
-      "bytes": 11363,
+      "bytes": 12555,
       "path": "module_storage.py",
-      "sha256": "1e7e8a744d0b23ddd3a262272fc16e1c8178a4e53cb2bdcd58ab1876ea436a02"
+      "sha256": "542dfa4ebd7aefda012cf185734338275c1428460344342bf7b2a2f66ffb154a"
     },
     {
       "bytes": 4731,
@@ -311,9 +341,9 @@
       "sha256": "83a9699c3f1364d534f6af2d7f50e0689a471dd5f005ba2a78e6153d5e351d5a"
     },
     {
-      "bytes": 2001,
+      "bytes": 2037,
       "path": "scripts/run_adversarial_bundle.py",
-      "sha256": "656e30b3400dc72f91b193de7c69fbd721a0926350ec104de8f09efe16515ef4"
+      "sha256": "d675de880bfc3f1f7148f02150d78356a659ceb9463e58204b70e79905ba48b7"
     },
     {
       "bytes": 6655,
@@ -321,9 +351,9 @@
       "sha256": "8ccc37febe69402b1869b2f0b869c35cffc28110fbaa1877c1aeb8745e51f6a0"
     },
     {
-      "bytes": 147421,
+      "bytes": 210728,
       "path": "temp_12.md",
-      "sha256": "e38836090b757705f648f03323719538df348835909cf5b3e2e3ed9bb3502ace"
+      "sha256": "7f366c5d09da84752b2fa8c34d96c71bd7aad9f61f85f63a13e4ef613209e11a"
     },
     {
       "bytes": 9717,

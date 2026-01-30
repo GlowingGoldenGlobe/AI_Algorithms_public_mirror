@@ -466,6 +466,39 @@ py -3 scripts\tune_and_test.py --sel-min 0.45 --comp-activate 0.6
 
 ---
 
+## Report retention (tuning + assessment artifacts)
+
+Tuning and assessment produce artifacts that fall into three buckets:
+
+- **Temporary:** `TemporaryQueue/` (can be deleted on a schedule)
+  - Examples: `TemporaryQueue/metrics.json`, `TemporaryQueue/adversarial_report_*.json`, `TemporaryQueue/canary_checks/<run_id>/...`
+  - Policy gate outputs: `TemporaryQueue/policy_tune_gate_last.json` and `TemporaryQueue/policy_tune_gate/report_*.json`
+- **Operational:** `ActiveSpace/` (working state; keep/trim intentionally)
+- **Long-term:** `LongTermStore/` (persisted records; prune bounded subsets like collectors)
+
+Recommended workflow:
+
+1) If something fails (eval/canary/adversarial), archive evidence first:
+   - `py -3 scripts/archive_failure_bundle.py --out-dir LongTermStore/Archives --require-failure`
+2) Then let cleanup run:
+   - `py -3 cli.py gc --temp-days 7 --yes`
+
+For more detail (taxonomy + scheduling guidance), see [docs/REPORT_RETENTION.md](docs/REPORT_RETENTION.md).
+
+Agent Mode note (recommended operator entrypoint):
+
+- The repo includes a loop runner that can perform “assess → (optional) guarded upgrade → archive-on-failure” in one flow.
+  - Script: `py -3 scripts/assess_upgrade_loop.py --once`
+  - VS Code tasks: **AI Brain: assess loop (oneshot)** and **AI Brain: assess+upgrade loop (dry-run)**
+- Use the dry-run loop first; if the policy gate is clean, you can re-run with guarded apply.
+  - Review: `TemporaryQueue/policy_tune_gate_last.json`
+  - Apply (guarded): `py -3 scripts/assess_upgrade_loop.py --once --apply`
+- Loop reports:
+  - `TemporaryQueue/assess_upgrade_loop_last.json`
+  - `TemporaryQueue/assess_upgrade_loop/loop_*.json`
+
+---
+
 ## Where tuning is referenced
 
 - The root README has a short overview in its “Policy Tuning” section.

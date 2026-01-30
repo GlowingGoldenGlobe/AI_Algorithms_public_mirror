@@ -18,6 +18,14 @@ ROOT = os.path.join(_BASE_DIR, "LongTermStore", "ActiveSpace")
 CONFIG_PATH = os.path.join(_BASE_DIR, "config.json")
 
 
+def _atomic_write_json(path: str, data) -> None:
+    tmp = path + ".tmp"
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, path)
+
+
 def _det_ts() -> str:
     """Return deterministic fixed timestamp if enabled; else None."""
     try:
@@ -275,8 +283,7 @@ def collect_results(plan, data_id, content="demo content", timeout_seconds=None)
 
     # Persist results to collector file
     path = os.path.join(ROOT, f"collector_{data_id}.json")
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(results, f, ensure_ascii=False, indent=2)
+    _atomic_write_json(path, results)
 
     # Build collector summary
     modules_requested = len(modules)
@@ -293,8 +300,14 @@ def collect_results(plan, data_id, content="demo content", timeout_seconds=None)
     # Merge into Semantic record if exists and allowed
     semantic_path = os.path.join(_BASE_DIR, "LongTermStore", "Semantic", f"{data_id}.json")
     if merge_outputs and os.path.exists(semantic_path):
-        with open(semantic_path, "r+", encoding="utf-8") as f:
-            record = json.load(f)
+        record = None
+        try:
+            with open(semantic_path, "r", encoding="utf-8") as f:
+                record = json.load(f)
+        except Exception:
+            record = None
+
+        if isinstance(record, dict):
             outputs = record.setdefault("collector_outputs", [])
             # Merge strategy
             new_outputs = results
@@ -391,11 +404,9 @@ def collect_results(plan, data_id, content="demo content", timeout_seconds=None)
                 }
             except Exception:
                 pass
-            f.seek(0)
             # ensure schema_version on semantic record
             record.setdefault("schema_version", "1.0")
-            json.dump(record, f, ensure_ascii=False, indent=2)
-            f.truncate()
+            _atomic_write_json(semantic_path, record)
     elif not merge_outputs:
         pass
 
