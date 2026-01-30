@@ -4,6 +4,45 @@ Date: 2026-01-25
 
 ## Log
 
+- New task (2026-01-30): add homepage link button.
+  - Action: update `index.html` with a button opening the public mirror URL `https://glowinggoldenglobe.github.io/AI_Algorithms_public_mirror/glowinggoldenglobe_workspace.html`.
+
+- Completed (2026-01-30): add homepage link button.
+  - Updated: `index.html` header button row now includes “Open Public Mirror” launching the public mirror in a new tab.
+  - Verification: static HTML change (no runtime execution required).
+
+- New task (2026-01-30): regenerate public mirror after homepage tweak.
+  - Action: rerun `scripts/create_public_mirror.py` so the published mirror includes the new header button, then publish updates.
+
+- New task (2026-01-30): open the dashboard in a browser.
+  - Action: start VS Code task “AI Brain: dashboard (bg)” (HTTP server on 127.0.0.1:8000) and open the dashboard URL.
+  - Fix: updated `.vscode/tasks.json` dashboard open tasks to quote URLs correctly under pwsh (avoid `&` parse error).
+
+- New task (2026-01-30): one-click load recommended dashboard files.
+  - Added: `POST /api/compare_flush` endpoint in `scripts/run_dashboard_server.py` to generate `TemporaryQueue/metrics_compare.json` by running `scripts/compare_adaptive_vs_fixed.py --flush-metrics`.
+  - Added: dashboard button “Generate Compare Metrics + Load Defaults” in `dashboard.html` to call the endpoint then auto-load defaults (metrics + adversarial reports).
+  - Follow-up: restart the dashboard server on port 8000 so it serves the updated API endpoint.
+
+- New task (2026-01-30): fix dashboard default-fetch JS error.
+  - Issue: `tryFetchDefaults()` referenced an undefined `reportCandidatesSet`, causing the “Generate Compare Metrics + Load Defaults” button to fail during the load step.
+  - Fix: remove the dead/undefined `reportCandidatesSet` code path so defaults load reliably.
+
+- New task (2026-01-30): assess current activities from real run metrics.
+  - Action: read `TemporaryQueue/metrics.json` (run metrics), summarize key counters, and correlate with orchestrator state/logs to describe what the system is doing now.
+
+- New task (2026-01-30): align ASSESSMENT_PROCEDURE with current workflow.
+  - Compare: documented assessment steps vs current operational flow (orchestrator daemon, dashboard server, compare metrics generation button, run vs compare metrics files).
+  - Update: add/clarify commands, VS Code tasks, and single-writer cautions.
+  - Updated: `ASSESSMENT_PROCEDURE.md` (dashboard section, run vs compare metrics, orchestrator pause/resume for eval).
+  - Verification: ran VS Code task “AI Brain: eval” (with orchestrator paused; resumed afterwards).
+
+- New task (2026-01-30): make the “dashboard+compare (auto-start server)” VS Code task robust.
+  - Problem: embedding multi-line PowerShell in `.vscode/tasks.json` is brittle under VS Code’s shell wrapping and causes parse errors.
+  - Plan: move the logic into a small Python helper script (start server if needed → flush compare metrics → open dashboard URL) and have the task run that script via `.venv` Python.
+
+- New task (2026-01-30): user request “Start the AI”.
+  - Action: start the orchestrator daemon via VS Code task “AI Brain: orchestrator (bg)” and confirm healthy via “AI Brain: status”.
+
 - New task (2026-01-29): update `.github/copilot-instructions.md` for AI coding agents.
   - Source: `README.md`, `AGENT.md`, `cli.py`, `run_eval.py`, `project_orchestrator.py`, and storage/path safety utilities.
   - Goal: concise (~20–50 lines) repo-specific guidance (workflows, single-writer constraints, determinism, path safety, artifact directories).
@@ -72,6 +111,202 @@ Date: 2026-01-25
   - Fix: changed Plotly load to `defer` and guarded chart renders when Plotly is unavailable (tables/live JSON still work).
   - Verification: opened dashboard via `http://127.0.0.1:8000/dashboard.html` and confirmed header/controls render even with Plotly blocked.
 
+- Completed (2026-01-30): improve dashboard first-load UX.
+  - Updated: `dashboard.html` shows placeholder guidance in chart panels before render.
+  - Added: optional `?autofetch=1` query param to auto-run “Try Fetch Defaults (server mode)” on load.
+  - Verification: opened `dashboard.html` in VS Code Simple Browser and confirmed placeholders render immediately.
+
+- Completed (2026-01-30): fix chart placeholder overlay.
+  - Fix: clear chart containers before Plotly renders and guard chart rendering when Plotly is unavailable.
+  - Outcome: placeholder hint no longer sits on top of rendered charts.
+
+- Completed (2026-01-30): improve dashboard “Try Fetch Defaults” report discovery.
+  - Problem: adversarial reports are written under `TemporaryQueue/`, but server-mode fetch only tried repo-root filenames.
+  - Fix: server-mode now tries both `TemporaryQueue/` and repo-root paths using the actual S1–S6 filenames.
+  - Verification: confirmed the files exist under `TemporaryQueue/` and dashboard autofetch populates charts/tables.
+
+- Completed (2026-01-30): fix dashboard parsing of adversarial report fields.
+  - Problem: current extractors assumed `validation` / `status` at the top-level, but reports store fields under `result.*` and `seed_obj.*`.
+  - Fix: dashboard extractors now read `result.validation`, `result.task_status`, `seed_obj.seed`, and additional adversarial flags (`rolled_back`, `negative_gain`, `re_evaluate`).
+  - Outcome: Per-scenario table shows real `n`/seed where present; histogram uses real sample counts (e.g., 256 for S1).
+
+- New task (2026-01-30): dashboard scenario semantics + index-based default fetch.
+  - Fix: per-scenario PASS/FAIL/NEEDS_REVIEW/ESCALATED mapping for S2–S5 so they don’t appear as UNKNOWN when the report schema uses scenario-specific flags.
+  - Improve: `Try Fetch Defaults (server mode)` should prefer `adversarial_run_index.json` (when present) to discover report filenames/paths.
+  - UX: ensure missing `n` displays as blank (not `0`) and escalation table includes S2/S5 signals.
+  - Verification: run VS Code task “AI Brain: eval” and sanity-check dashboard in Simple Browser (`?autofetch=1`).
+
+- Completed (2026-01-30): dashboard scenario semantics + index-based default fetch.
+  - Updated: `dashboard.html` per-scenario PASS/FAIL mapping now recognizes S3 `mis_association`, S4 `flagged`, S5 `escalation_action`, and S2 `needs_review` (so these don’t show as UNKNOWN).
+  - Updated: `Try Fetch Defaults (server mode)` now prefers `adversarial_run_index.json` to discover report paths; falls back to known S1–S6 filenames.
+  - Updated: escalation detection now includes `result.task_status == needs_review` and `result.escalation_action == escalate`, and reasons from `result.escalation_reason`.
+  - Verification: ran VS Code task “AI Brain: eval” (completed).
+
+- Completed (2026-01-30): dashboard `n` parsing bugfix.
+  - Fix: `extractN()` no longer coerces null/empty `validation.n` into `0`; missing `n` stays blank in the table and is excluded from the histogram.
+  - Verification: ran VS Code task “AI Brain: eval” (completed).
+
+- Completed (2026-01-30): dashboard early-stop pie chart UX.
+  - Fix: `dashboard.html` now shows a hint when `resolution_adaptive_used_total` is 0 (avoids a blank pie chart).
+  - Verification: ran VS Code task “AI Brain: eval” (completed).
+
+- Completed (2026-01-30): dashboard hint-only chart polish.
+  - Updated: `dashboard.html` uses a `hint-only` chart mode to center hint messages and reduce chart height when no plot is rendered.
+  - Verification: ran VS Code task “AI Brain: eval” (PASS).
+
+- New task (2026-01-30): dashboard fetch log + persistent HTTP server logs.
+  - Problem: dashboard server-mode fetch attempts can generate noisy 404s (e.g., trying repo-root report paths when only `TemporaryQueue/` exists); and `python -m http.server` logs only to the terminal.
+  - Fix: reduce 404 noise in `tryFetchDefaults()` (try `TemporaryQueue/` first; only fallback to repo-root when needed) and add a simple on-page fetch log.
+  - Improve: add a dedicated dashboard server script that writes HTTP access logs to `TemporaryQueue/dashboard_http_server.log` for later review/react.
+  - Verification: run VS Code task “AI Brain: eval”.
+
+- Completed (2026-01-30): dashboard fetch log + persistent HTTP server logs.
+  - Added: `scripts/run_dashboard_server.py` (serves repo over HTTP and writes access logs to `TemporaryQueue/dashboard_http_server.log`).
+  - Updated: `.vscode/tasks.json` restores/defines “AI Brain: dashboard (bg)” and points it at the new server script.
+  - Updated: `dashboard.html` now tries `TemporaryQueue/` report paths first and only falls back to repo-root paths when needed; adds a “Fetch log (server mode)” panel to show attempted URLs and status codes.
+  - Verification: ran VS Code task “AI Brain: eval” (PASS).
+
+- New task (2026-01-30): adaptive sampling metrics activation + reporting.
+  - Add: `Copilot_Tasks_2.md` task list for auditing and activating adaptive metrics.
+  - Audit: where adaptive/early-stop/rollback-storm metrics are produced vs persisted.
+  - Action: run a targeted workload to exercise adaptive sampling (so dashboard shows more than fixed-sample totals).
+  - Verification: run VS Code task “AI Brain: eval” after any code changes.
+
+- New task (2026-01-30): persist adaptive metrics from compare helper.
+  - Problem: `module_metrics` counters are in-memory; `TemporaryQueue/metrics.json` only updates when something calls `flush_metrics()`.
+  - Plan: add `--flush-metrics` (and optional `--flush-path`) to `scripts/compare_adaptive_vs_fixed.py` so a deterministic, bounded run can write adaptive/early-stop counters for the dashboard.
+  - Verification: run the compare script once to populate `TemporaryQueue/metrics.json`, then run VS Code task “AI Brain: eval”.
+
+- Completed (2026-01-30): persist adaptive metrics from compare helper.
+  - Updated: `scripts/compare_adaptive_vs_fixed.py` supports `--flush-metrics` and `--flush-path`.
+  - Ran: `py -3 scripts/compare_adaptive_vs_fixed.py --deterministic --json --flush-metrics` to generate adaptive counters and flush them to disk.
+  - Verification: ran VS Code task “AI Brain: eval” (PASS).
+
+- New task (2026-01-30): separate compare metrics file + dashboard selection.
+  - Problem: flushing compare results into `TemporaryQueue/metrics.json` can overwrite live/run metrics used by the dashboard.
+  - Plan: default compare helper flush target to `TemporaryQueue/metrics_compare.json` and update `dashboard.html` to select between `metrics.json` and `metrics_compare.json` in server mode (query param / UI toggle), keeping file-picker behavior unchanged.
+  - Also: update `AGENT.md` to describe this “task list file” option (`Copilot_Tasks_*.md`) while keeping `temp_12.md` as the primary audit log.
+  - Verification: run VS Code task “AI Brain: eval”.
+
+- Completed (2026-01-30): separate compare metrics file + dashboard selection.
+  - Updated: `scripts/compare_adaptive_vs_fixed.py` now defaults `--flush-metrics` output to `TemporaryQueue/metrics_compare.json` (override via `--flush-path`).
+  - Updated: `dashboard.html` now lets server mode choose between run metrics and compare metrics (UI selector + `?metrics=compare` query param; selection persisted via localStorage).
+  - Updated: `AGENT.md` documents the optional `Copilot_Tasks_*.md` task-list pattern while keeping `temp_12.md` as the required audit log.
+  - Verification: ran VS Code task “AI Brain: eval” (PASS).
+
+- New task (2026-01-30): document compare-metrics commands.
+  - Add: explicit `--flush-metrics`/`--flush-path` usage + dashboard URL examples (e.g., `?metrics=compare&autofetch=1`) to `TUNING_GUIDE.md` and `Copilot_Tasks_2.md`.
+  - Goal: make the new operational commands discoverable outside `temp_12.md`.
+
+- Completed (2026-01-30): document compare-metrics commands.
+  - Updated: `TUNING_GUIDE.md` now includes `--flush-metrics` default output (`TemporaryQueue/metrics_compare.json`), `--flush-path` override, and dashboard URL examples.
+  - Updated: `Copilot_Tasks_2.md` now includes a practical shortcut command + dashboard URL for compare metrics.
+
+- New task (2026-01-30): add VS Code tasks for compare metrics + dashboard.
+  - Add: a task to generate/flush compare metrics (`metrics_compare.json`).
+  - Add: an optional task to open the dashboard in compare mode (`?metrics=compare&autofetch=1`).
+  - Verification: run VS Code task “AI Brain: eval”.
+
+- Completed (2026-01-30): add VS Code tasks for compare metrics + dashboard.
+
+- New task (2026-01-30): ignore local orchestration status artifacts.
+  - Problem: local extension status dumps under `orchestration/vscode_orchestration_gpt5/status/` are ephemeral and should not show up as repo changes.
+  - Action: update `.gitignore` to ignore `orchestration/vscode_orchestration_gpt5/status/*.json`.
+  - Verification: run VS Code task “AI Brain: eval” (PASS).
+  - Updated: `.vscode/tasks.json` adds “AI Brain: compare metrics (flush)” and “AI Brain: dashboard open (compare)”.
+  - Verification: ran VS Code task “AI Brain: eval” (PASS).
+
+- New task (2026-01-30): add combined task (compare metrics + open dashboard).
+  - Add: a single VS Code task to flush compare metrics and then open the dashboard in compare mode.
+  - Verification: run the combined task; run VS Code task “AI Brain: eval”.
+
+- Completed (2026-01-30): add combined task (compare metrics + open dashboard).
+  - Updated: `.vscode/tasks.json` adds “AI Brain: compare+dashboard (one-click)”.
+  - Ran: compare flush to `TemporaryQueue/metrics_compare.json` and opened the dashboard URL in compare mode.
+  - Verification: ran VS Code task “AI Brain: eval” (PASS).
+
+- New task (2026-01-30): add one-click task that starts dashboard server if needed.
+  - Add: VS Code task that checks whether `127.0.0.1:8000` is listening; if not, starts `scripts/run_dashboard_server.py`, then flushes compare metrics and opens the dashboard in compare mode.
+  - Verification: run the task; run VS Code task “AI Brain: eval”.
+
+- New task (2026-01-30): make dashboard URL safe for shells.
+  - Problem: URLs containing `&metrics=compare` can be mis-parsed by shells/task runners (treating `&` as a command separator).
+  - Plan: support `dashboard.html?autofetch=compare` (single param) to imply compare-mode + autofetch, then update VS Code tasks and docs to use the shell-safe URL.
+  - Verification: open the URL via tasks; run VS Code task “AI Brain: eval”.
+
+- Completed (2026-01-30): make dashboard URL safe for shells.
+  - Updated: `dashboard.html` supports `?autofetch=compare` / `?autofetch=run` (single param; no `&` required).
+  - Updated: `.vscode/tasks.json` dashboard/one-click tasks now open `dashboard.html?autofetch=compare`.
+  - Updated: `TUNING_GUIDE.md` and `Copilot_Tasks_2.md` now use the shell-safe URL examples.
+  - Verification: exercised “AI Brain: dashboard+compare (auto-start server)” and re-ran `py -3 run_eval.py` (PASS). (VS Code task runner had trouble with `&` URLs during this session.)
+
+- New task (2026-01-30): harden VS Code tasks (path safety + deterministic shells).
+  - Problem: some tasks still use hard-coded absolute paths, and one task embeds PowerShell code without explicitly invoking PowerShell (depends on default shell).
+  - Plan: update `.vscode/tasks.json` to remove absolute-path commands, run core tasks via the repo `.venv` interpreter, and make the auto-start dashboard+compare task explicitly invoke PowerShell.
+  - Verification: run “AI Brain: eval” via VS Code task; run “AI Brain: dashboard+compare (auto-start server)”.
+
+- Completed (2026-01-30): harden VS Code tasks (reduce shell fragility).
+  - Updated: `.vscode/tasks.json` compare/dashboard tasks now call `scripts/dashboard_compare_autostart.py` via `.venv/Scripts/python.exe` (no `cmd.exe start`, no `&&` chaining, no URL quoting edge cases).
+  - Updated: “AI Brain: compare metrics (flush)” now runs via `.venv` Python for consistency.
+  - Verification: ran VS Code task “AI Brain: eval” (PASS); ran “AI Brain: compare metrics (flush)” and confirmed `TemporaryQueue/metrics_compare.json` was written.
+
+- New task (2026-01-30): standardize remaining VS Code tasks on `.venv` Python.
+  - Problem: several tasks still invoke `python ...` or `py -3 ...`, which can select a different interpreter and reintroduce shell quoting variability.
+  - Plan: update `.vscode/tasks.json` so remaining Python tasks use `${workspaceFolder}/.venv/Scripts/python.exe` with explicit `args` arrays; add a helper-based “dashboard open (run)” task.
+  - Verification: run VS Code task “AI Brain: eval” after the task updates.
+
+- Completed (2026-01-30): standardize remaining VS Code tasks on `.venv` Python.
+  - Updated: `.vscode/tasks.json` stress/policy/gc/determinism/snapshot/tune tasks now invoke `${workspaceFolder}/.venv/Scripts/python.exe` with explicit `args` (less shell-dependent; consistent interpreter).
+  - Added: VS Code task “AI Brain: dashboard open (run)” (helper-based; shell-safe).
+  - Verification: ran VS Code task “AI Brain: eval” (PASS).
+
+- New task (2026-01-30): remove remaining single-string venv task commands.
+  - Problem: a few tasks still use a single `command` string with spaces (e.g., `python.exe script.py --flags...`), which can be more shell-sensitive than `command` + `args`.
+  - Plan: convert `policy tune gate` and `project_orchestrator.py` tasks to `command: .venv python` + `args: [...]`.
+  - Verification: run VS Code task “AI Brain: eval” after the changes.
+
+- Completed (2026-01-30): remove remaining single-string venv task commands.
+  - Updated: `.vscode/tasks.json` converts “policy tune gate (dry-run/apply)” and all orchestrator tasks (oneshot/bg) to `command` + `args` form.
+  - Verification: ran VS Code task “AI Brain: eval” (PASS).
+
+- New task (2026-01-30): add compound VS Code tasks for “dashboard suite”.
+  - Goal: one-click start dashboard server (bg) + metrics watch (bg), then open dashboard in run/compare mode.
+  - Plan: add `dependsOn` tasks in `.vscode/tasks.json` that orchestrate existing tasks (`AI Brain: dashboard (bg)`, `AI Brain: metrics watch (bg)`, and the helper-based dashboard open tasks).
+  - Verification: run VS Code task “AI Brain: eval” after updating tasks.
+
+- Completed (2026-01-30): add compound VS Code tasks for “dashboard suite”.
+  - Added: “AI Brain: dashboard+metrics (bg)”, “AI Brain: dashboard suite (run) (one-click)”, and “AI Brain: dashboard suite (compare) (one-click)”.
+  - Verification: ran VS Code task “AI Brain: eval” (PASS).
+
+- New task (2026-01-30): restore missing live-metrics watcher script.
+  - Problem: `.vscode/tasks.json` references `scripts/ai_brain_metrics.py`, and `temp_12.md` documents it, but the file is missing from `scripts/`.
+  - Plan: add `scripts/ai_brain_metrics.py` implementing `--watch --interval-sec --heartbeat` and atomic JSON output to `TemporaryQueue/ai_brain_metrics_live.json` (default).
+  - Verification: run the script once; run VS Code task “AI Brain: eval”.
+
+- Completed (2026-01-30): restore missing live-metrics watcher script.
+  - Added: `scripts/ai_brain_metrics.py` (writes `TemporaryQueue/ai_brain_metrics_live.json` atomically; supports `--watch --interval-sec --heartbeat`).
+  - Verification: ran the script once (`--json`) successfully; ran VS Code task “AI Brain: eval” (PASS).
+
+- New task (2026-01-30): restore dashboard “Live Snapshot” panel.
+  - Goal: display `TemporaryQueue/ai_brain_metrics_live.json` in `dashboard.html` (server mode poll + file-picker fallback).
+  - Plan: add a new card to the dashboard UI and a small JS poller with safe empty-state behavior.
+  - Verification: run VS Code task “AI Brain: eval” after dashboard edits.
+
+- Completed (2026-01-30): restore dashboard “Live Snapshot” panel.
+  - Updated: `dashboard.html` adds a “Live Snapshot (ai_brain_metrics)” card with file-picker load + server-mode fetch + auto-refresh.
+  - Verification: ran VS Code task “AI Brain: eval” (PASS).
+
+- New task (2026-01-30): add a clean “stop dashboard suite” command.
+  - Goal: stop the dashboard HTTP server and the metrics watcher without hunting terminals.
+  - Plan:
+    - Add `/api/shutdown` endpoint to `scripts/run_dashboard_server.py` (local-only; header-gated).
+    - Add `--stop-file` support to `scripts/ai_brain_metrics.py` and use a sentinel file in `TemporaryQueue/`.
+    - Add `scripts/dashboard_suite_stop.py` + VS Code task to trigger both.
+  - Verification: run VS Code task “AI Brain: eval” after changes.
+
+- Follow-up (2026-01-30): harden server shutdown.
+  - Fix: `scripts/run_dashboard_server.py` now normalizes POST paths by stripping query strings before endpoint matching.
+  - Fix: `scripts/dashboard_suite_stop.py` now supports `--force-kill-port` to `taskkill` the LISTENING PID on the port if graceful shutdown fails (Windows-only; used by the VS Code stop task).
 - Completed (2026-01-27): ran the repo backup module to save a project snapshot to an external storage device.
   - Command: `py -3 cli.py backup --archive-root E:\Archive_AI_Algorithms`
   - Output: `E:\Archive_AI_Algorithms\Archive_7` (240 files; mode=committed)
@@ -856,6 +1091,24 @@ Date: 2026-01-25
   - Goal: let other projects (e.g., `AI_Coder_Controller`) read the expected Copilot Chat setup (tabs/views) and the project task list from the public mirror.
   - Approach: add a small doc under `docs/` (no secrets), include it in the `core_thinking` mirror allowlist, and keep the mirror build VS Code task present.
   - Verification: regenerate mirror and run “AI Brain: eval”.
+
+- Completed (2026-01-30): mirror-visible VS Code chat + task contract added.
+  - Added: `docs/VSCODE_CHAT_TASK_CONTRACT.md` (safe-to-publish contract).
+  - Updated: `scripts/create_public_mirror.py` includes the contract doc and restores static HTML pages in the `core_thinking` profile.
+  - Updated: `.vscode/tasks.json` restores “Public mirror: build (core_thinking)”.
+  - Verification: regenerated mirror (core_thinking; `--preserve-git`) and ran VS Code task “AI Brain: eval” (PASS).
+
+- Completed (2026-01-30): pushed upgrades to remotes.
+  - Main repo: committed and pushed the contract + mirror allowlist updates (and dashboard improvements).
+  - Main repo: updated `.gitignore` to ensure VS Code task exceptions remain stageable.
+  - Mirror repo: committed and pushed the regenerated mirror (includes the contract doc).
+
+- New task (2026-01-30): ignore `temp_images_snapshots_etc/`.
+  - Goal: keep local screenshots/temporary images out of git status.
+
+- Completed (2026-01-30): `temp_images_snapshots_etc/` ignored.
+  - Updated: `.gitignore` now ignores `temp_images_snapshots_etc/` (and `Temp_Images_Snapshots_etc/`).
+  - Verification: `git status` clean after update.
   - Verification: ran VS Code task “AI Brain: eval” (completed).
 
 - New task (2026-01-26): design a hardware-aware scaling plan for activity quantity.
@@ -2851,4 +3104,13 @@ Planned actions:
 - Run (2026-01-28): re-ran eval after repair.
   - Command: `.venv\\Scripts\\python.exe run_eval.py`
   - Result: PASS (all cases)
+
+- New task (2026-01-30): repair VS Code tasks + remove local orchestration status artifacts.
+  - Finding: `.vscode/tasks.json` drifted into a partially broken state (several tasks lost their script/args), and `orchestration/vscode_orchestration_gpt5/status/*.json` showed up as new files.
+  - Action: restore `.vscode/tasks.json` to the known-good definitions (use `.venv` python + explicit args arrays), and ensure the orchestration status folder is ignored and not tracked.
+  - Verification: run VS Code task “AI Brain: eval” after the repair; confirm `git status` no longer shows the orchestration status JSON files.
+
+- Completed (2026-01-30): tasks/artifact hygiene verification.
+  - Confirmed: `git status --porcelain` does not show `orchestration/vscode_orchestration_gpt5/status/*.json`.
+  - Verification: ran VS Code task “AI Brain: eval” (PASS).
 

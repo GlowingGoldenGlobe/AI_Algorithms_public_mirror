@@ -133,6 +133,24 @@ py -3 scripts\compare_adaptive_vs_fixed.py --use-config --deterministic --json
 py -3 scripts\compare_adaptive_vs_fixed.py --use-config --deterministic --csv TemporaryQueue\compare_rows.csv
 ```
 
+Optional: persist comparison counters for the dashboard (does not overwrite run metrics).
+
+```powershell
+py -3 scripts\compare_adaptive_vs_fixed.py --deterministic --json --flush-metrics
+```
+
+Default output: `TemporaryQueue/metrics_compare.json`.
+
+To override the output path:
+
+```powershell
+py -3 scripts\compare_adaptive_vs_fixed.py --deterministic --json --flush-metrics --flush-path TemporaryQueue/metrics.json
+```
+
+Dashboard tip (server mode):
+- Compare metrics (shell-safe): `http://127.0.0.1:8000/dashboard.html?autofetch=compare`
+- Run metrics (shell-safe): `http://127.0.0.1:8000/dashboard.html?autofetch=run`
+
 Sweep helper (nightly/staging): run a small parameter grid over adaptive knobs and write a CSV summary:
 
 ```powershell

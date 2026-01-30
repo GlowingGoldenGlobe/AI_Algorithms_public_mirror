@@ -11,6 +11,11 @@ This file is a persistent guide for any coding agent working in this repository.
    - When you discover a helpful task, add it to the task list.
    - After implementing, record what changed, why, and how it was verified.
 
+2b. **Optional: use a dedicated task-list file for complex work.**
+   - Keep `temp_12.md` as the primary audit log (required), but for multi-step work you may also create a focused task list file like `Copilot_Tasks_2.md` (or `Copilot_Tasks_<N>.md`).
+   - Use the task list file to keep the plan readable (goals, steps, acceptance criteria). In `temp_12.md`, log a short pointer to the task list and the final outcomes.
+   - This is useful when a change spans multiple areas (e.g., dashboard + scripts + config) and you want a clean checklist without bloating the main log.
+
 3. **Backups / diffs for substantial changes.**
    - If a change is substantial (multi-file refactor, behavior change, or large edits):
      - Create a backup copy of the file(s) being changed (e.g., `filename.bak_YYYYMMDDTHHMMSSZ`).
@@ -67,3 +72,6 @@ Reference docs for the workflow:
 
 - Follow the runbook in `ASSESSMENT_PROCEDURE.md`.
 - Write assessments and next-task recommendations into `temp_12.md` (primary log).
+
+Practical example:
+- If you need to generate metrics for visualization without overwriting run outputs, you can flush comparison metrics to `TemporaryQueue/metrics_compare.json` and point the dashboard at it (server mode). Track the steps in a `Copilot_Tasks_*.md` file, and record the final verification (e.g., “AI Brain: eval PASS”) in `temp_12.md`.

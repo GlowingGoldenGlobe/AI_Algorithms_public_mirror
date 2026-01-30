@@ -82,7 +82,7 @@ Offline-friendly:
       margin-bottom: 4px;
     }
 
-    input[type="file"], input[type="text"] {
+    input[type="file"], input[type="text"], select {
       width: 100%;
       box-sizing: border-box;
       padding: 10px;
@@ -147,6 +147,19 @@ Offline-friendly:
       min-height: 280px;
     }
 
+    .chart.hint-only {
+      min-height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 14px;
+    }
+
+    .chart.hint-only .hint {
+      margin: 0;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
@@ -197,7 +210,11 @@ Offline-friendly:
       font-size: 12px;
     }
   </style>
-  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+  <script
+    src="https://cdn.plot.ly/plotly-2.30.0.min.js"
+    defer
+    onload="window.__plotly_loaded=true; try{ if(window.__loaded){ renderFromLoaded(window.__loaded); } }catch(e){}"
+  ></script>
 </head>
 <body>
   <header>
@@ -224,9 +241,9 @@ Offline-friendly:
         <h2 style="margin:0 0 8px 0; font-size: 16px;">Load Data</h2>
         <div class="controls">
           <div>
-            <label for="metricsFile">metrics.json</label>
+            <label for="metricsFile">metrics.json (or metrics_compare.json)</label>
             <input id="metricsFile" type="file" accept="application/json" />
-            <div class="hint">Suggested: TemporaryQueue/metrics.json</div>
+            <div class="hint">Suggested: TemporaryQueue/metrics.json (run) or TemporaryQueue/metrics_compare.json (compare)</div>
           </div>
 
           <div>
@@ -244,6 +261,7 @@ Offline-friendly:
           <div class="row">
             <button type="button" onclick="renderAll()">Render Dashboard</button>
             <button type="button" onclick="tryFetchDefaults()">Try Fetch Defaults (server mode)</button>
+            <button type="button" onclick="generateCompareAndLoadDefaults()">Generate Compare Metrics + Load Defaults</button>
             <span id="status" class="tag">idle</span>
           </div>
 
@@ -252,9 +270,18 @@ Offline-friendly:
             <input id="basePath" type="text" value="." />
             <div class="hint">
               If you serve the repo (e.g. python -m http.server), this attempts to fetch
-              ./TemporaryQueue/metrics.json and adversarial_report_*.json (only known names).
+              ./TemporaryQueue/metrics.json (or metrics_compare.json) and adversarial_report_*.json (only known names).
               For file:// usage, prefer the file pickers.
             </div>
+          </div>
+
+          <div>
+            <label for="metricsServerSource">Server mode metrics source</label>
+            <select id="metricsServerSource">
+              <option value="run">Run metrics (TemporaryQueue/metrics.json)</option>
+              <option value="compare">Compare metrics (TemporaryQueue/metrics_compare.json)</option>
+            </select>
+            <div class="hint">Tip: use compare metrics to avoid overwriting live/run totals.</div>
           </div>
         </div>
 
@@ -286,8 +313,59 @@ Offline-friendly:
               </tr>
             </thead>
             <tbody></tbody>
+
+              <details style="margin-top: 6px;">
+                <summary style="cursor:pointer; font-family: var(--mono); font-size: 12px; color: var(--muted);">Fetch log (server mode)</summary>
+                <div class="hint" style="margin-top: 8px;">Shows which URLs were attempted and their status codes.</div>
+                <pre id="fetchLog" style="white-space: pre-wrap; margin: 8px 0 0 0; font-family: var(--mono); font-size: 11px; color: var(--muted);"></pre>
+              </details>
           </table>
         </div>
+      </section>
+
+      <section class="card">
+        <h2 style="margin:0 0 8px 0; font-size: 16px;">Live Snapshot (ai_brain_metrics)</h2>
+        <div class="hint">Displays `TemporaryQueue/ai_brain_metrics_live.json` produced by the metrics watcher task.</div>
+
+        <div class="controls" style="margin-top: 10px;">
+          <div>
+            <label for="liveSnapshotFile">Load snapshot JSON (file:// mode)</label>
+            <input id="liveSnapshotFile" type="file" accept="application/json" />
+            <div class="hint">Suggested: TemporaryQueue/ai_brain_metrics_live.json</div>
+          </div>
+
+          <div class="row">
+            <button type="button" onclick="loadLiveSnapshotFromPicker()">Load snapshot from file</button>
+            <button type="button" onclick="fetchLiveSnapshotOnce()">Fetch snapshot (server mode)</button>
+            <button type="button" onclick="toggleLiveSnapshotAutorefresh()">Toggle Auto-Refresh</button>
+            <span id="liveSnapshotStatus" class="tag">idle</span>
+          </div>
+
+          <div>
+            <label for="liveSnapshotInterval">Auto-refresh interval (seconds)</label>
+            <input id="liveSnapshotInterval" type="text" value="10" />
+            <div class="hint">Only works in server mode (http://...). Uses the base path above.</div>
+          </div>
+        </div>
+
+        <div style="overflow:auto; margin-top: 10px;">
+          <table aria-label="Live snapshot summary">
+            <thead>
+              <tr>
+                <th>ts</th>
+                <th>orchestrator_lock</th>
+                <th>temp_files</th>
+                <th>active_files</th>
+                <th>holding_files</th>
+                <th>metrics_run</th>
+                <th>metrics_compare</th>
+              </tr>
+            </thead>
+            <tbody id="liveSnapshotTableBody"></tbody>
+          </table>
+        </div>
+
+        <textarea id="liveSnapshotRaw" spellcheck="false" placeholder="Load or fetch a snapshot to see raw JSON..." style="height: 160px; margin-top: 10px;"></textarea>
       </section>
 
       <section class="card">
@@ -336,11 +414,29 @@ Offline-friendly:
       'resolution_rollback_storm_escalations_total'
     ];
 
+    const METRICS_SERVER_PATHS = {
+      run: 'TemporaryQueue/metrics.json',
+      compare: 'TemporaryQueue/metrics_compare.json',
+    };
+
+    const LIVE_SNAPSHOT_PATH = 'TemporaryQueue/ai_brain_metrics_live.json';
+
     function setStatus(text, kind='') {
       const el = document.getElementById('status');
       if (!el) return;
       el.textContent = text;
       el.className = 'tag' + (kind ? (' ' + kind) : '');
+    }
+
+    function setInitialPlaceholders() {
+      const msg = 'Load data (left) then click “Render Dashboard”, or click “Try Fetch Defaults (server mode)”.';
+      const ids = ['chartCounters', 'chartHistogram', 'chartPie'];
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        if (String(el.innerHTML || '').trim()) continue;
+        el.innerHTML = `<div class="hint">${msg}</div>`;
+      }
     }
 
     function safeNumber(x) {
@@ -369,6 +465,155 @@ Offline-friendly:
       return payload;
     }
 
+    function setLiveSnapshotStatus(text, kind='') {
+      const el = document.getElementById('liveSnapshotStatus');
+      if (!el) return;
+      el.textContent = text;
+      el.className = 'tag' + (kind ? (' ' + kind) : '');
+    }
+
+    function _parseIntSafe(x, dflt) {
+      const n = parseInt(String(x || '').trim(), 10);
+      return Number.isFinite(n) ? n : dflt;
+    }
+
+    function _fmtBool(b) {
+      return b ? 'yes' : 'no';
+    }
+
+    function _getBase() {
+      const baseEl = document.getElementById('basePath');
+      let base = baseEl ? String(baseEl.value || '.').trim() : '.';
+      if (!base) base = '.';
+      base = base.replace(/\/+$/g, '');
+      return base;
+    }
+
+    function renderLiveSnapshot(snapshot) {
+      const rawEl = document.getElementById('liveSnapshotRaw');
+      if (rawEl) {
+        try {
+          rawEl.value = JSON.stringify(snapshot, null, 2);
+        } catch {
+          rawEl.value = '';
+        }
+      }
+
+      const tbody = document.getElementById('liveSnapshotTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const ts = String(snapshot && snapshot.ts ? snapshot.ts : '');
+      const lockExists = Boolean(get(snapshot, ['lock', 'exists'], false));
+
+      const tempFiles = safeNumber(get(snapshot, ['dirs', 'temporary', 'files'], 0));
+      const activeFiles = safeNumber(get(snapshot, ['dirs', 'active', 'files'], 0));
+      const holdingFiles = safeNumber(get(snapshot, ['dirs', 'holding', 'files'], 0));
+
+      const metricsRunExists = Boolean(get(snapshot, ['files', 'metrics_run', 'exists'], false));
+      const metricsCompareExists = Boolean(get(snapshot, ['files', 'metrics_compare', 'exists'], false));
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${ts}</td>
+        <td>${_fmtBool(lockExists)}</td>
+        <td>${Math.trunc(tempFiles)}</td>
+        <td>${Math.trunc(activeFiles)}</td>
+        <td>${Math.trunc(holdingFiles)}</td>
+        <td>${_fmtBool(metricsRunExists)}</td>
+        <td>${_fmtBool(metricsCompareExists)}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    async function loadLiveSnapshotFromPicker() {
+      try {
+        const input = document.getElementById('liveSnapshotFile');
+        if (!input || !input.files || !input.files.length) {
+          setLiveSnapshotStatus('no file selected', 'warn');
+          return;
+        }
+        const obj = await readJsonFile(input.files[0]);
+        renderLiveSnapshot(obj);
+        setLiveSnapshotStatus('loaded', 'ok');
+      } catch (e) {
+        setLiveSnapshotStatus('load failed', 'bad');
+      }
+    }
+
+    async function fetchLiveSnapshotOnce() {
+      const base = _getBase();
+      const url = `${base}/${LIVE_SNAPSHOT_PATH}`;
+      try {
+        setLiveSnapshotStatus('fetching...', 'warn');
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) {
+          setLiveSnapshotStatus(`fetch ${r.status}`, 'bad');
+          return;
+        }
+        const obj = await r.json();
+        renderLiveSnapshot(obj);
+        setLiveSnapshotStatus('ok', 'ok');
+      } catch {
+        setLiveSnapshotStatus('fetch error', 'bad');
+      }
+    }
+
+    let _liveSnapshotTimer = null;
+    function toggleLiveSnapshotAutorefresh() {
+      if (_liveSnapshotTimer) {
+        clearInterval(_liveSnapshotTimer);
+        _liveSnapshotTimer = null;
+        setLiveSnapshotStatus('auto-refresh off', '');
+        return;
+      }
+
+      const iv = _parseIntSafe((document.getElementById('liveSnapshotInterval') || {}).value, 10);
+      const intervalMs = Math.max(2, Math.min(iv, 600)) * 1000;
+      _liveSnapshotTimer = setInterval(() => { fetchLiveSnapshotOnce(); }, intervalMs);
+      setLiveSnapshotStatus('auto-refresh on', 'ok');
+      fetchLiveSnapshotOnce();
+    }
+
+    function _getQueryParam(name) {
+      try {
+        const u = new URL(window.location.href);
+        return u.searchParams.get(name);
+      } catch {
+        return null;
+      }
+    }
+
+    function getServerMetricsMode() {
+      // Priority: query param -> localStorage -> current select -> default.
+      const qp = String(_getQueryParam('metrics') || '').toLowerCase();
+      if (qp === 'compare' || qp === 'run') return qp;
+
+      try {
+        const saved = String(localStorage.getItem('dashboard_metrics_server_mode') || '').toLowerCase();
+        if (saved === 'compare' || saved === 'run') return saved;
+      } catch {
+        // ignore
+      }
+
+      const el = document.getElementById('metricsServerSource');
+      const v = String(el?.value || '').toLowerCase();
+      if (v === 'compare' || v === 'run') return v;
+      return 'run';
+    }
+
+    function setServerMetricsMode(mode) {
+      const m = (String(mode || '').toLowerCase() === 'compare') ? 'compare' : 'run';
+      const el = document.getElementById('metricsServerSource');
+      if (el) el.value = m;
+      try {
+        localStorage.setItem('dashboard_metrics_server_mode', m);
+      } catch {
+        // ignore
+      }
+      return m;
+    }
+
     function extractScenarioId(report, fallbackName='') {
       return (
         get(report, ['scenario_id'], null) ||
@@ -394,6 +639,7 @@ Offline-friendly:
       return (
         get(report, ['validation'], null) ||
         get(report, ['task', 'validation'], null) ||
+        get(report, ['result', 'validation'], null) ||
         null
       );
     }
@@ -401,51 +647,113 @@ Offline-friendly:
     function extractN(report) {
       const v = extractValidation(report);
       const n = get(v || {}, ['n'], null);
-      return Number.isFinite(Number(n)) ? Number(n) : null;
+      if (n === null || n === undefined) return null;
+      if (typeof n === 'string' && n.trim() === '') return null;
+      const nn = Number(n);
+      return Number.isFinite(nn) ? nn : null;
     }
 
     function extractSeed(report) {
       const v = extractValidation(report) || {};
       return (
         get(report, ['deterministic_seed'], null) ||
+        get(report, ['seed_obj', 'seed'], null) ||
         get(v, ['seed'], null) ||
         get(report, ['task', 'deterministic_seed'], null) ||
+        get(report, ['result', 'deterministic_seed'], null) ||
         ''
       );
     }
 
     function extractPassFail(report) {
       const v = extractValidation(report) || {};
-      const status = String(get(report, ['status'], '') || get(report, ['task', 'status'], '') || '').toLowerCase();
-      const result = String(get(v, ['result'], '') || '').toLowerCase();
+      const resultObj = get(report, ['result'], null);
+      const res = (resultObj && typeof resultObj === 'object') ? resultObj : {};
 
-      if (status.includes('fail') || result.includes('fail')) return 'FAIL';
-      if (status.includes('pass') || result.includes('pass')) return 'PASS';
+      const scenarioId = String(extractScenarioId(report, '') || '').toUpperCase();
+      const status = String(
+        get(report, ['status'], '') ||
+        get(report, ['task', 'status'], '') ||
+        get(report, ['result', 'task_status'], '') ||
+        get(report, ['result', 'status'], '') ||
+        ''
+      ).toLowerCase();
+      const validationResult = String(get(v, ['result'], '') || '').toLowerCase();
+
+      // Scenario-specific semantics (matches adversarial harness intent).
+      if (scenarioId.startsWith('S1')) {
+        if (get(res, ['rolled_back'], null) === true) return 'FAIL';
+        if (String(get(res, ['task_status'], '') || '').toLowerCase() === 'validated') return 'PASS';
+      }
+
+      if (scenarioId.startsWith('S2')) {
+        if (get(res, ['needs_review'], null) === true) return 'NEEDS_REVIEW';
+        if (String(get(res, ['task_status'], '') || '').toLowerCase() === 'needs_review') return 'NEEDS_REVIEW';
+      }
+
+      if (scenarioId.startsWith('S3')) {
+        if (get(res, ['mis_association'], null) === true) return 'PASS';
+        if (get(res, ['mis_association'], null) === false) return 'FAIL';
+      }
+
+      if (scenarioId.startsWith('S4')) {
+        if (get(res, ['flagged'], null) === true) return 'PASS';
+        if (get(res, ['flagged'], null) === false) return 'FAIL';
+      }
+
+      if (scenarioId.startsWith('S5')) {
+        const action = String(get(res, ['escalation_action'], '') || '').toLowerCase();
+        if (action === 'escalate') return 'ESCALATED';
+        if (action) return action.toUpperCase();
+      }
+
+      if (scenarioId.startsWith('S6')) {
+        if (get(res, ['negative_gain'], null) === true) return 'FAIL';
+        if (get(res, ['re_evaluate'], null) === true) return 'ESCALATED';
+      }
+
+      // Common schema: validated/rolled_back.
+      if (get(res, ['rolled_back'], null) === true) return 'FAIL';
+      if (status.includes('validated')) return 'PASS';
+      if (status.includes('needs_review')) return 'NEEDS_REVIEW';
+
+      if (status.includes('fail') || validationResult.includes('fail')) return 'FAIL';
+      if (status.includes('pass') || validationResult.includes('pass')) return 'PASS';
 
       // Heuristic: if a boolean exists.
       const ok = get(report, ['ok'], null);
       if (ok === true) return 'PASS';
       if (ok === false) return 'FAIL';
 
-      // Fallback: if result is escalated.
-      if (result.includes('escal')) return 'ESCALATED';
+      // Fallback: escalation / re-evaluate.
+      if (validationResult.includes('escal')) return 'ESCALATED';
+      if (get(res, ['re_evaluate'], null) === true) return 'ESCALATED';
 
-      return status ? status.toUpperCase() : (result ? result.toUpperCase() : 'UNKNOWN');
+      return status ? status.toUpperCase() : (validationResult ? validationResult.toUpperCase() : 'UNKNOWN');
     }
 
     function extractEscalation(report) {
       const v = extractValidation(report) || {};
+      const resultObj = get(report, ['result'], null);
+      const res = (resultObj && typeof resultObj === 'object') ? resultObj : {};
       const escalated = (
         get(report, ['task', 'escalated'], null) === true ||
         get(report, ['escalated'], null) === true ||
         String(get(v, ['result'], '') || '').toLowerCase() === 'escalated' ||
-        String(get(report, ['task', 'status'], '') || '').toLowerCase() === 'needs_review'
+        String(get(report, ['task', 'status'], '') || '').toLowerCase() === 'needs_review' ||
+        String(get(res, ['task_status'], '') || '').toLowerCase() === 'needs_review' ||
+        get(res, ['needs_review'], null) === true ||
+        String(get(res, ['escalation_action'], '') || '').toLowerCase() === 'escalate' ||
+        get(report, ['result', 're_evaluate'], null) === true ||
+        get(report, ['result', 'rolled_back'], null) === true
       );
 
       const retryCount = (
         get(report, ['task', 'retry_count'], null) ||
         get(report, ['retry_count'], null) ||
         get(report, ['task', 'attempts'], null) ||
+        get(res, ['attempts'], null) ||
+        (Array.isArray(get(res, ['failures'], null)) ? get(res, ['failures'], []).length : null) ||
         ''
       );
 
@@ -454,6 +762,7 @@ Offline-friendly:
         get(report, ['escalation_reason'], null) ||
         get(report, ['reason'], null) ||
         get(v, ['reason'], null) ||
+        get(res, ['escalation_reason'], null) ||
         ''
       );
 
@@ -501,6 +810,18 @@ Offline-friendly:
     }
 
     function renderCountersChart(metrics) {
+      const el = document.getElementById('chartCounters');
+      if (!window.Plotly || typeof Plotly.newPlot !== 'function') {
+        if (el) {
+          el.classList.add('hint-only');
+          el.innerHTML = '<div class="hint">Charts unavailable: Plotly failed to load (offline/blocked). Tables and raw JSON still work.</div>';
+        }
+        return;
+      }
+      if (el) {
+        el.classList.remove('hint-only');
+        el.innerHTML = '';
+      }
       const keys = DEFAULT_COUNTER_KEYS;
       const values = keys.map(k => safeNumber(metrics[k] || 0));
 
@@ -521,10 +842,29 @@ Offline-friendly:
         yaxis: { automargin: true }
       };
 
-      Plotly.newPlot('chartCounters', [trace], layout, {responsive: true, displayModeBar: false});
+      try {
+        Plotly.newPlot('chartCounters', [trace], layout, {responsive: true, displayModeBar: false});
+      } catch {
+        if (el) {
+          el.classList.add('hint-only');
+          el.innerHTML = '<div class="hint">Charts error: Plotly rendering failed. Tables and raw JSON still work.</div>';
+        }
+      }
     }
 
     function renderHistogram(reports) {
+      const el = document.getElementById('chartHistogram');
+      if (!window.Plotly || typeof Plotly.newPlot !== 'function') {
+        if (el) {
+          el.classList.add('hint-only');
+          el.innerHTML = '<div class="hint">Charts unavailable: Plotly failed to load (offline/blocked). Tables and raw JSON still work.</div>';
+        }
+        return;
+      }
+      if (el) {
+        el.classList.remove('hint-only');
+        el.innerHTML = '';
+      }
       const ns = reports.map(r => extractN(r.data)).filter(n => n != null);
       const trace = {
         x: ns,
@@ -543,13 +883,40 @@ Offline-friendly:
         yaxis: { title: 'count', automargin: true }
       };
 
-      Plotly.newPlot('chartHistogram', [trace], layout, {responsive: true, displayModeBar: false});
+      try {
+        Plotly.newPlot('chartHistogram', [trace], layout, {responsive: true, displayModeBar: false});
+      } catch {
+        if (el) {
+          el.classList.add('hint-only');
+          el.innerHTML = '<div class="hint">Charts error: Plotly rendering failed. Tables and raw JSON still work.</div>';
+        }
+      }
     }
 
     function renderPie(metrics) {
+      const el = document.getElementById('chartPie');
+      if (!window.Plotly || typeof Plotly.newPlot !== 'function') {
+        if (el) {
+          el.classList.add('hint-only');
+          el.innerHTML = '<div class="hint">Charts unavailable: Plotly failed to load (offline/blocked). Tables and raw JSON still work.</div>';
+        }
+        return;
+      }
+      if (el) {
+        el.classList.remove('hint-only');
+        el.innerHTML = '';
+      }
       const used = safeNumber(metrics['resolution_adaptive_used_total']);
       const early = safeNumber(metrics['resolution_adaptive_early_stop_total']);
       const nonEarly = Math.max(0, used - early);
+
+      if (used <= 0) {
+        if (el) {
+          el.classList.add('hint-only');
+          el.innerHTML = '<div class="hint">No adaptive sampling activity yet (`resolution_adaptive_used_total` is 0), so the early-stop pie chart is empty.</div>';
+        }
+        return;
+      }
 
       const trace = {
         labels: ['early_stop', 'non_early_stop'],
@@ -567,7 +934,14 @@ Offline-friendly:
         showlegend: true
       };
 
-      Plotly.newPlot('chartPie', [trace], layout, {responsive: true, displayModeBar: false});
+      try {
+        Plotly.newPlot('chartPie', [trace], layout, {responsive: true, displayModeBar: false});
+      } catch {
+        if (el) {
+          el.classList.add('hint-only');
+          el.innerHTML = '<div class="hint">Charts error: Plotly rendering failed. Tables and raw JSON still work.</div>';
+        }
+      }
     }
 
     function renderEscalationTable(reports) {
@@ -723,25 +1097,56 @@ Offline-friendly:
       // We cannot list directories, so we attempt a small set of known filenames.
       setStatus('fetching...', '');
 
+      window.__fetchLog = [];
+      function _logFetch(url, status, note='') {
+        try {
+          window.__fetchLog.push({ ts: Date.now(), url, status, note });
+          const el = document.getElementById('fetchLog');
+          if (el) {
+            const lines = window.__fetchLog.map(e => {
+              const code = (e.status === null || e.status === undefined) ? 'ERR' : String(e.status);
+              const extra = e.note ? ` (${e.note})` : '';
+              return `${code} ${e.url}${extra}`;
+            });
+            el.textContent = lines.join('\n');
+          }
+        } catch {
+          // ignore
+        }
+      }
+
       const base = (document.getElementById('basePath')?.value || '.').replace(/\/+$/, '');
+      const metricsMode = getServerMetricsMode();
+      const metricsRel = METRICS_SERVER_PATHS[metricsMode] || METRICS_SERVER_PATHS.run;
       const candidates = [
-        `${base}/TemporaryQueue/metrics.json`,
+        `${base}/${metricsRel}`,
         `${base}/metrics.json`,
       ];
 
-      const reportCandidates = [
-        `${base}/adversarial_report_S1_small_noise.json`,
-        `${base}/adversarial_report_S2_large_outlier.json`,
-        `${base}/adversarial_report_S3_case.json`,
-        `${base}/adversarial_report_S4_case.json`,
-        `${base}/adversarial_report_S5_case.json`,
-        `${base}/adversarial_report_S6_case.json`,
+      const indexCandidates = [
+        `${base}/adversarial_run_index.json`,
+        `${base}/TemporaryQueue/adversarial_run_index.json`,
+      ];
+
+      const reportFilenames = [
+        'adversarial_report_S1_small_noise.json',
+        'adversarial_report_S2_large_outlier.json',
+        'adversarial_report_S3_context_swap.json',
+        'adversarial_report_S4_poisoned_retrieval.json',
+        'adversarial_report_S5_rollback_storm.json',
+        'adversarial_report_S6_counterfactual_negative_gain.json',
       ];
 
       async function tryFetchJson(url) {
-        const r = await fetch(url, { cache: 'no-store' });
-        if (!r.ok) return null;
-        return await r.json();
+        try {
+          const r = await fetch(url, { cache: 'no-store' });
+          _logFetch(url, r.status, r.ok ? '' : 'not ok');
+          if (!r.ok) return null;
+          return await r.json();
+        } catch (e) {
+          _logFetch(url, null, (e && e.message) ? String(e.message) : 'fetch error');
+          return null;
+        }
       }
 
       let metricsPayload = {};
@@ -749,24 +1154,59 @@ Offline-friendly:
       for (const url of candidates) {
         try {
           const r = await fetch(url, { cache: 'no-store' });
+          _logFetch(url, r.status, r.ok ? '' : 'not ok');
           if (!r.ok) continue;
           metricsRawText = await r.text();
           metricsPayload = JSON.parse(metricsRawText);
           break;
         } catch {
+          _logFetch(url, null, 'fetch error');
           // continue
         }
       }
 
       const reports = [];
-      for (const url of reportCandidates) {
-        try {
-          const data = await tryFetchJson(url);
+
+      // Prefer the adversarial run index (if present) to discover report paths.
+      const seenReportUrls = new Set();
+      for (const url of indexCandidates) {
+        const idx = await tryFetchJson(url);
+        if (!idx || !Array.isArray(idx.reports)) continue;
+        for (const entry of idx.reports) {
+          const rf = entry && typeof entry === 'object' ? (entry.report_file || entry.file || '') : '';
+          if (!rf) continue;
+          const rel = String(rf).replace(/^\/+/, '').replace(/^\.\/+/, '');
+          const reportUrl = `${base}/${rel}`;
+          if (seenReportUrls.has(reportUrl)) continue;
+          seenReportUrls.add(reportUrl);
+          const data = await tryFetchJson(reportUrl);
           if (!data) continue;
-          const name = url.split('/').slice(-1)[0];
+          const name = reportUrl.split('/').slice(-1)[0];
           reports.push({ name, data });
-        } catch {
-          // continue
+        }
+        break;
+      }
+
+      // Fallback: try known filenames in TemporaryQueue first, then repo-root only if needed.
+      for (const fn of reportFilenames) {
+        const tqUrl = `${base}/TemporaryQueue/${fn}`;
+        const rootUrl = `${base}/${fn}`;
+
+        if (!seenReportUrls.has(tqUrl)) {
+          const data = await tryFetchJson(tqUrl);
+          if (data) {
+            seenReportUrls.add(tqUrl);
+            reports.push({ name: fn, data });
+            continue;
+          }
+        }
+
+        if (!seenReportUrls.has(rootUrl)) {
+          const data = await tryFetchJson(rootUrl);
+          if (data) {
+            seenReportUrls.add(rootUrl);
+            reports.push({ name: fn, data });
+          }
         }
       }
 
@@ -774,8 +1214,10 @@ Offline-friendly:
       let sweepText = '';
       try {
         const r = await fetch(`${base}/TemporaryQueue/sweep_results.csv`, { cache: 'no-store' });
+        _logFetch(`${base}/TemporaryQueue/sweep_results.csv`, r.status, r.ok ? '' : 'not ok');
         if (r.ok) sweepText = await r.text();
       } catch {
+        _logFetch(`${base}/TemporaryQueue/sweep_results.csv`, null, 'fetch error');
         // ignore
       }
 
@@ -788,6 +1230,63 @@ Offline-friendly:
       window.__loaded = { metricsPayload, metricsRawText, reports, sweepText };
       setStatus('fetched', 'good');
       renderFromLoaded(window.__loaded);
+    }
+
+    async function generateCompareAndLoadDefaults() {
+      // Convenience button: run the compare flush script via the local dashboard server,
+      // then load the recommended defaults (metrics + adversarial reports).
+      // This only works in server mode (http://127.0.0.1:8000/...).
+      setStatus('generating...', '');
+
+      window.__fetchLog = window.__fetchLog || [];
+      function _logFetch(url, status, note='') {
+        try {
+          window.__fetchLog.push({ ts: Date.now(), url, status, note });
+          const el = document.getElementById('fetchLog');
+          if (el) {
+            const lines = window.__fetchLog.map(e => {
+              const code = (e.status === null || e.status === undefined) ? 'ERR' : String(e.status);
+              const extra = e.note ? ` (${e.note})` : '';
+              return `${code} ${e.url}${extra}`;
+            });
+            el.textContent = lines.join('\n');
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      const base = (document.getElementById('basePath')?.value || '.').replace(/\/+$/, '');
+      const url = `${base}/api/compare_flush`;
+
+      try {
+        // Ensure the dashboard is in compare mode so it loads metrics_compare.json afterwards.
+        setServerMetricsMode('compare');
+
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'X-AI-Algorithms-Dashboard': '1',
+          },
+          cache: 'no-store',
+        });
+        _logFetch(url, r.status, r.ok ? '' : 'not ok');
+
+        const payload = await r.json().catch(() => ({}));
+        if (!r.ok || !payload || payload.ok !== true) {
+          setStatus('generate failed', 'bad');
+          const err = (payload && (payload.error || payload.stderr)) ? String(payload.error || payload.stderr) : 'unknown error';
+          alert(`Compare metrics generation failed.\n\n${err}`);
+          return;
+        }
+
+        setStatus('generated', 'good');
+        await tryFetchDefaults();
+      } catch (e) {
+        _logFetch(url, null, (e && e.message) ? String(e.message) : 'fetch error');
+        setStatus('generate error', 'bad');
+        alert('Could not generate compare metrics. Ensure the dashboard server is running and reload the page.');
+      }
     }
 
     function renderFromLoaded(loaded) {
@@ -819,8 +1318,41 @@ Offline-friendly:
       }
     }
 
+    function _hasQueryFlag(name) {
+      try {
+        const u = new URL(window.location.href);
+        const v = (u.searchParams.get(name) || '').toLowerCase();
+        return v === '1' || v === 'true' || v === 'yes' || v === 'on';
+      } catch {
+        return false;
+      }
+    }
+
     (function init() {
       setStatus('idle', '');
+      setInitialPlaceholders();
+
+      // Initialize server metrics source selector.
+      setServerMetricsMode(getServerMetricsMode());
+      const sel = document.getElementById('metricsServerSource');
+      if (sel) {
+        sel.addEventListener('change', () => {
+          setServerMetricsMode(sel.value);
+        });
+      }
+
+      // Optional convenience for Simple Browser: auto-fetch in server mode.
+      // Use: dashboard.html?autofetch=1
+      // Shell-safe alternatives (no '&' needed):
+      // - dashboard.html?autofetch=compare
+      // - dashboard.html?autofetch=run
+      const af = String(_getQueryParam('autofetch') || '').toLowerCase();
+      if (af === 'compare' || af === 'run') {
+        setServerMetricsMode(af);
+        tryFetchDefaults().catch(() => {});
+      } else if (_hasQueryFlag('autofetch')) {
+        tryFetchDefaults().catch(() => {});
+      }
     })();
   </script>
 </body>

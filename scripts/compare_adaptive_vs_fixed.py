@@ -20,6 +20,7 @@ Usage:
 Notes:
 - This script does NOT modify config.json.
 - It does not require metrics.json; it computes n from validation artifacts.
+- Optional: it can flush `module_metrics` counters to disk when `--flush-metrics` is set.
 
 Config (optional, when --use-config is set):
 - verifier.adaptive_sampling (for adaptive parameters)
@@ -45,6 +46,11 @@ if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 
 import module_error_resolution as error_resolution
+
+
+def _default_flush_path() -> str:
+    # Keep this workspace-relative to match module_metrics.flush_metrics expectations.
+    return "TemporaryQueue/metrics_compare.json"
 
 
 def _load_json(path: str) -> Dict[str, Any]:
@@ -255,6 +261,16 @@ def main() -> int:
     ap.add_argument("--deterministic", action="store_true", help="Force deterministic execution")
     ap.add_argument("--csv", default=None, help="Write per-scenario comparison rows to CSV")
     ap.add_argument("--json", action="store_true", help="Print summary as JSON")
+    ap.add_argument(
+        "--flush-metrics",
+        action="store_true",
+        help="Flush module_metrics counters to disk (default: TemporaryQueue/metrics_compare.json)",
+    )
+    ap.add_argument(
+        "--flush-path",
+        default=None,
+        help="Optional workspace-relative output path for flushed metrics (e.g., TemporaryQueue/metrics.json)",
+    )
     args = ap.parse_args()
 
     deterministic_mode = bool(args.deterministic)
@@ -429,6 +445,17 @@ def main() -> int:
         print(f"- avg_fixed_n: {summary['avg_fixed_n']:.2f}")
         print(f"- avg_adaptive_n: {summary['avg_adaptive_n']:.2f}")
         print(f"- sample_reduction: {summary['sample_reduction']:.3f}")
+
+    if bool(args.flush_metrics):
+        try:
+            from module_metrics import flush_metrics
+
+            target = str(args.flush_path) if args.flush_path else _default_flush_path()
+            out_path = flush_metrics(path=target)
+            if out_path:
+                print(f"flushed_metrics: {out_path}")
+        except Exception:
+            pass
 
     return 0
 

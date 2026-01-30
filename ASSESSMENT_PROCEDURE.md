@@ -41,6 +41,17 @@ This document makes that practice explicit so any VS Code agent (or human) can r
 py -3 cli.py status
 ```
 
+Optional (recommended): include recent cycles + policy activation snapshot:
+
+```powershell
+py -3 cli.py status --det --policy-rate --recent 3
+```
+
+If the automation orchestrator daemon is running, you can also confirm it is healthy via:
+- `ActiveSpace/orchestrator_state.json`
+- `ActiveSpace/orchestrator.lock.info.json`
+- `TemporaryQueue/orchestrator/orchestrator.log`
+
 - One demo cycle (pick a unique id):
 
 ```powershell
@@ -60,6 +71,27 @@ If eval fails, the assessment output should stop here and capture:
 - what recent change likely caused it
 - proposed fix task(s)
 
+**Single-writer note (orchestrator):** if the `project_orchestrator.py` daemon is running, avoid running eval concurrently.
+Pause it before eval, then resume afterwards:
+
+```powershell
+./.venv/Scripts/python.exe project_orchestrator.py --config orchestrator_config.json pause
+py -3 run_eval.py
+./.venv/Scripts/python.exe project_orchestrator.py --config orchestrator_config.json resume
+```
+
+### 2b) Confirm metrics were flushed (run metrics)
+
+`run_eval.py` flushes metrics at the end of the run. Confirm the file exists and summarize it:
+
+```powershell
+py -3 scripts/metrics_dashboard.py --path TemporaryQueue/metrics.json
+```
+
+Interpretation:
+- `TemporaryQueue/metrics.json` is the **run** metrics file (live counters from normal runs).
+- `TemporaryQueue/metrics_compare.json` is the **compare** metrics file (used by the adaptive-vs-fixed comparison helper).
+
 ### 3) Spot-check run artifacts (ground truth)
 
 Check these artifacts for internal consistency:
@@ -77,6 +109,44 @@ Focus on:
 - did `toggle_justifications` get written?
 - does `reason_chain` exist?
 - are `matched_procedures` present when expected?
+
+---
+
+## Optional: dashboard-based assessment (recommended)
+
+The repo includes a local dashboard that can auto-load the recommended files (metrics + adversarial reports) when served over HTTP.
+
+### Start the dashboard server
+
+Preferred: VS Code task **AI Brain: dashboard (bg)**.
+
+CLI alternative:
+
+```powershell
+./.venv/Scripts/python.exe scripts/run_dashboard_server.py --port 8000 --bind 127.0.0.1
+```
+
+Then open:
+
+- `http://127.0.0.1:8000/dashboard.html?autofetch=1&metrics=compare`
+
+### Load recommended defaults
+
+Use the dashboard button **Generate Compare Metrics + Load Defaults**.
+
+Notes:
+- This button calls a local endpoint (`POST /api/compare_flush`) on the dashboard server to generate `TemporaryQueue/metrics_compare.json`.
+- It then loads defaults (metrics + `TemporaryQueue/adversarial_report_*.json`) and renders charts/tables.
+- If you want **run** metrics instead of **compare**, change “Server mode metrics source” to “Run metrics (TemporaryQueue/metrics.json)” and click “Try Fetch Defaults (server mode)”.
+
+Quick sanity checks to report in the assessment:
+- What metrics file was loaded (run vs compare)?
+- Are scenario tables populated (S1–S6 adversarial reports loaded)?
+- Do escalation rows appear (S5/S2 typically) and are they explained?
+
+Troubleshooting:
+- If the Simple Browser shows a blank/white page, the server is likely not running. Confirm:
+  - `http://127.0.0.1:8000/api/ping` returns `{ "ok": true, ... }`
 
 ---
 
