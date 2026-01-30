@@ -784,50 +784,6 @@ def cmd_status(args):
         'index_ids': len((idx.get('id_to_tokens') or {})),
         'activity_cycles': cycles
     }
-
-    # Optional: append a status snapshot to a JSONL file for time-series tracking.
-    if bool(getattr(args, 'log', False)):
-        try:
-            from module_storage import ROOT as _ROOT, resolve_path
-            from module_tools import safe_join
-
-            sem_dir = resolve_path('semantic')
-            proc_dir = resolve_path('procedural')
-            obj_dir = os.path.join(str(_ROOT), 'LongTermStore', 'Objectives')
-            lts_as_dir = os.path.join(str(_ROOT), 'LongTermStore', 'ActiveSpace')
-
-            def _count_json_files(d: str) -> int:
-                try:
-                    return int(len([n for n in os.listdir(d) if str(n).lower().endswith('.json')]))
-                except Exception:
-                    return 0
-
-            snapshot = {
-                'schema_version': '1.0',
-                # Wall clock time for time-series; keep deterministic timestamp alongside when enabled.
-                'ts_utc': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
-                'deterministic_mode': bool(det.get('deterministic_mode')),
-                'fixed_timestamp': det.get('fixed_timestamp'),
-                'qty': {
-                    'index_ids': int(out.get('index_ids') or 0),
-                    'activity_cycles': int(out.get('activity_cycles') or 0),
-                    'semantic_records': _count_json_files(sem_dir),
-                    'objectives': _count_json_files(obj_dir),
-                    'procedural_records': _count_json_files(proc_dir),
-                    'collector_outputs': _count_json_files(lts_as_dir),
-                },
-            }
-
-            rel = str(getattr(args, 'log_path', '') or '').strip()
-            if not rel:
-                rel = 'TemporaryQueue/status_history.jsonl'
-            log_path = safe_join(str(_ROOT), rel)
-            os.makedirs(os.path.dirname(os.path.abspath(log_path)), exist_ok=True)
-            with open(log_path, 'a', encoding='utf-8', newline='\n') as f:
-                f.write(json.dumps(snapshot, ensure_ascii=False, sort_keys=True) + "\n")
-            out['status_log'] = {'ok': True, 'path': os.path.relpath(log_path, str(_ROOT))}
-        except Exception:
-            out['status_log'] = {'ok': False}
     if getattr(args, 'resources', False):
         out['resources'] = _summarize_resources(limit=getattr(args, 'collectors', 10))
     if getattr(args, 'recent', 0) and args.recent > 0:
@@ -863,113 +819,6 @@ def cmd_status(args):
             'thresholds': {'sel_min_ben_syn': sel_min, 'composite_activate': comp_act}
         }
     print(json.dumps(out, indent=2))
-
-
-def cmd_hw(args):
-    """Capture a hardware/system snapshot.
-
-    Intended for monitoring AI Brain activities and correlating runs with resource usage.
-    """
-    cfg = _load_config() or {}
-    det = cfg.get('determinism', {}) if isinstance(cfg, dict) else {}
-
-    from module_hardware_metrics import get_hardware_info
-
-    hw = get_hardware_info(fast=bool(getattr(args, 'fast', False)))
-    out = {
-        'schema_version': '1.0',
-        'ts_utc': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
-        'deterministic_mode': bool(det.get('deterministic_mode')),
-        'fixed_timestamp': det.get('fixed_timestamp'),
-        'hardware': hw,
-    }
-
-    # Optional: automation gate for agent-mode runners.
-    if bool(getattr(args, 'gate', False)):
-        gate_cfg = (cfg.get('hardware_gate') or {}) if isinstance(cfg, dict) else {}
-        def _pick(name: str, default_val):
-            v = getattr(args, name, None)
-            if v is not None:
-                return v
-            try:
-                return gate_cfg.get(name, default_val)
-            except Exception:
-                return default_val
-
-        cpu_max = _pick('cpu_max', 95.0)
-        mem_max = _pick('mem_max', 95.0)
-        disk_max = _pick('disk_max', 97.0)
-        require_ok = bool(_pick('require_ok', False))
-
-        info = (hw.get('info') or {}) if isinstance(hw, dict) else {}
-        cpu = info.get('cpu_percent')
-        mem = info.get('memory_percent')
-        disk = info.get('disk_percent')
-
-        reasons = []
-        gate_ok = True
-
-        if isinstance(hw, dict) and not bool(hw.get('ok', False)):
-            if require_ok:
-                gate_ok = False
-                reasons.append('hardware_snapshot_unavailable')
-            else:
-                reasons.append('hardware_snapshot_unavailable_soft')
-
-        def _check(val, max_val, label):
-            nonlocal gate_ok
-            if val is None:
-                return
-            try:
-                v = float(val)
-                m = float(max_val) if max_val is not None else None
-                if m is not None and v > m:
-                    gate_ok = False
-                    reasons.append(f"{label}_over_max:{v:.1f}>{m:.1f}")
-            except Exception:
-                # Ignore parse issues; keep gate best-effort.
-                return
-
-        _check(cpu, cpu_max, 'cpu')
-        _check(mem, mem_max, 'mem')
-        _check(disk, disk_max, 'disk')
-
-        out['gate'] = {
-            'ok': bool(gate_ok),
-            'reasons': reasons,
-            'thresholds': {
-                'cpu_max': cpu_max,
-                'mem_max': mem_max,
-                'disk_max': disk_max,
-                'require_ok': bool(require_ok),
-            },
-        }
-
-    if bool(getattr(args, 'log', False)):
-        try:
-            from module_storage import ROOT as _ROOT
-            from module_tools import safe_join
-
-            rel = str(getattr(args, 'log_path', '') or '').strip()
-            if not rel:
-                rel = 'TemporaryQueue/hardware_history.jsonl'
-            log_path = safe_join(str(_ROOT), rel)
-            os.makedirs(os.path.dirname(os.path.abspath(log_path)), exist_ok=True)
-            with open(log_path, 'a', encoding='utf-8', newline='\n') as f:
-                f.write(json.dumps(out, ensure_ascii=False, sort_keys=True) + "\n")
-            out['hardware_log'] = {'ok': True, 'path': os.path.relpath(log_path, str(_ROOT))}
-        except Exception:
-            out['hardware_log'] = {'ok': False}
-
-    print(json.dumps(out, indent=2))
-    if bool(getattr(args, 'gate', False)) and bool(getattr(args, 'strict', False)):
-        try:
-            if not bool((out.get('gate') or {}).get('ok', True)):
-                sys.exit(2)
-        except SystemExit:
-            raise
-        except Exception:
-            pass
 
 
 def cmd_index(args):
@@ -1048,24 +897,10 @@ def main():
     st.add_argument('--collectors', type=int, default=10, help='How many collector files to scan')
     st.add_argument('--recent', type=int, default=0, help='Show last N cycle summaries')
     st.add_argument('--det', action='store_true', help='Include latest determinism summary')
-    st.add_argument('--log', action='store_true', help='Append a status snapshot to TemporaryQueue/status_history.jsonl')
-    st.add_argument('--log-path', default='TemporaryQueue/status_history.jsonl', help='Workspace-relative JSONL path for status snapshots')
     st.add_argument('--policy-rate', action='store_true', help='Include activation-rate snapshot based on thresholds')
     st.add_argument('--sel-min-ben-syn', type=float, dest='sel_min_ben_syn', help='Override selection score threshold for beneficial+synthesis')
     st.add_argument('--composite-activate', type=float, dest='composite_activate', help='Override composite score threshold to activate')
     st.set_defaults(func=cmd_status)
-
-    shw = sub.add_parser('hw', help='Capture a hardware/system snapshot (CPU/mem/disk)')
-    shw.add_argument('--fast', action='store_true', help='Faster sampling (may be less stable)')
-    shw.add_argument('--log', action='store_true', help='Append snapshot to TemporaryQueue/hardware_history.jsonl')
-    shw.add_argument('--log-path', default='TemporaryQueue/hardware_history.jsonl', help='Workspace-relative JSONL path for hardware snapshots')
-    shw.add_argument('--gate', action='store_true', help='Evaluate CPU/mem/disk usage against thresholds (automation)')
-    shw.add_argument('--strict', action='store_true', help='With --gate: exit non-zero if thresholds exceeded')
-    shw.add_argument('--cpu-max', type=float, dest='cpu_max', default=None, help='With --gate: max allowed CPU percent')
-    shw.add_argument('--mem-max', type=float, dest='mem_max', default=None, help='With --gate: max allowed memory percent')
-    shw.add_argument('--disk-max', type=float, dest='disk_max', default=None, help='With --gate: max allowed disk percent')
-    shw.add_argument('--require-ok', action='store_true', help='With --gate: fail gate if snapshot cannot be obtained')
-    shw.set_defaults(func=cmd_hw)
 
     si = sub.add_parser('index', help='Rebuild and summarize semantic index')
     si.add_argument('--show-ids', action='store_true', help='Include sorted ids in output')

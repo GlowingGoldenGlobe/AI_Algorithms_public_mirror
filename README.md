@@ -25,18 +25,6 @@ py -3 -m venv .venv
 
 ### Run (single/batch)
 
-### Start (init workspace state)
-
-Run this when you want to “start the AI Brain” (initialize workspace state and seed objectives):
-
-- Preferred (VS Code): run the task **AI Brain: init**.
-
-```powershell
-./.venv/Scripts/python.exe cli.py init
-```
-
-This initializes required folders/state and prints a JSON summary.
-
 - Single cycle:
   - `./.venv/Scripts/python.exe -c "from module_integration import RelationalMeasurement; print(RelationalMeasurement('demo020','keyword good synthesis beneficial','semantic'))"`
 - Batch cycles:
@@ -101,16 +89,6 @@ Optional sweep (staging/debug): budget-capped parameter sweep across S1–S6.
   - `ActiveSpace/` is treated as the live working space for cycle logs and determinism reports.
   - `LongTermStore/ActiveSpace/` is used for persisted activity mirrors and collector/stress artifacts.
   This duplication is intentional for now (prototype evolution); see `module_integration` and `module_collector` for write sites.
-- Definitions (metrics terminology):
-  - Synapse (analogy only): metaphor for a discrete thought-connection event (conceptual, not a software module).
-  - Neural algorithm activity: code execution that performs thinking-like operations (scoring/selecting/retrieving/integrating).
-  - 3D measurement activity: computations tied to relational measurement (constructing relational state, measuring entities/relations, producing measurement reports).
-- Memory qty history (time-series): append a snapshot of “how much is stored” over time.
-  - Write one snapshot (JSONL):
-    ```powershell
-    py -3 cli.py status --log
-    ```
-  - History file: `TemporaryQueue/status_history.jsonl` (one JSON object per line).
 - Resources summary: recent collector CPU/memory by module.
   - Show recent collector resource metrics and per-module averages:
     ```powershell
@@ -151,23 +129,6 @@ Optional sweep (staging/debug): budget-capped parameter sweep across S1–S6.
   python cli.py gc --collectors 50 --cycles 200 --temp-days 7 --yes
   ```
 
-### Reports: temp vs operational vs long-term
-
-This repo produces many artifacts while running cycles/eval/canary/adversarial automation. Use this mental model:
-
-- `TemporaryQueue/` = **temporary run artifacts** (safe to delete on a cadence via `cli.py gc --temp-days N --yes`)
-- `ActiveSpace/` = **operational working state** (keep; trim intentionally)
-- `LongTermStore/` = **long-term persisted records** (keep; prune bounded subsets like collectors)
-
-Archiving workflow (recommended):
-
-1) If something fails, archive evidence first:
-  - `py -3 scripts/archive_failure_bundle.py --out-dir LongTermStore/Archives --require-failure`
-2) Then run cleanup on a cadence:
-  - `py -3 cli.py gc --collectors 50 --cycles 200 --temp-days 7 --yes`
-
-Full details: [docs/REPORT_RETENTION.md](docs/REPORT_RETENTION.md).
-
 ## Agent / Automation Notes
 
 - Task log: use `temp_12.md` as the running task + discovery log.
@@ -190,21 +151,7 @@ This repo also includes a *project automation* orchestrator (separate from the A
 For unattended “run → assess” checks:
 - Task: **AI Brain: canary checks** (runs eval + metrics dashboard + gates).
 - Metrics file: `TemporaryQueue/metrics.json` (flushed automatically by `run_eval.py`).
-- Also records: a status snapshot artifact (`status_snapshot.out`) and appends to `TemporaryQueue/status_history.jsonl`.
 - Tip: don’t run canary/eval concurrently with the orchestrator daemon; keep one active writer at a time.
-
-For unattended “start → assess → (optional) upgrade”:
-- Task: **AI Brain: assess loop (oneshot)** (runs canary and writes a JSON report)
-- Task: **AI Brain: assess+upgrade loop (dry-run)** (adds the guarded policy tune gate)
-- Reports:
-  - `TemporaryQueue/assess_upgrade_loop_last.json`
-  - `TemporaryQueue/assess_upgrade_loop/loop_*.json`
-  - `TemporaryQueue/policy_tune_gate_last.json`
-
-For unattended “preserve failure evidence → cleanup”:
-- Archive bundle (zip + manifest): `py -3 scripts/archive_failure_bundle.py --out-dir LongTermStore/Archives --require-failure`
-- Cleanup: `py -3 cli.py gc --temp-days 7 --yes`
-- Scheduling: add these as orchestrator jobs in `orchestrator_config_assessment.json` (both are disabled-by-default by design).
 
 ## Design Goals / Target Architecture (Summary)
 

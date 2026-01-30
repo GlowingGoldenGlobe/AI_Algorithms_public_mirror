@@ -67,6 +67,11 @@ Date: 2026-01-25
   - Purpose: keep `dashboard.html` available over HTTP and keep `TemporaryQueue/ai_brain_metrics_live.json` updating every 60s.
   - Verification: started both tasks; confirmed dashboard responds and live JSON timestamp updates.
 
+- Completed (2026-01-29): fix dashboard blank screen in VS Code Simple Browser.
+  - Root cause: external Plotly CDN script was loaded synchronously in `<head>`, which can hang/block rendering when the embedded browser can’t reach the CDN.
+  - Fix: changed Plotly load to `defer` and guarded chart renders when Plotly is unavailable (tables/live JSON still work).
+  - Verification: opened dashboard via `http://127.0.0.1:8000/dashboard.html` and confirmed header/controls render even with Plotly blocked.
+
 - Completed (2026-01-27): ran the repo backup module to save a project snapshot to an external storage device.
   - Command: `py -3 cli.py backup --archive-root E:\Archive_AI_Algorithms`
   - Output: `E:\Archive_AI_Algorithms\Archive_7` (240 files; mode=committed)
@@ -830,6 +835,27 @@ Date: 2026-01-25
 - New task (2026-01-29): add a one-click VS Code task to regenerate `public_mirror/`.
   - Goal: make it easy to refresh the published mirror from any VS Code window.
   - Command: `scripts/create_public_mirror.py --profile core_thinking --preserve-git`.
+
+- Completed (2026-01-29): VS Code task added to regenerate `public_mirror/`.
+  - Updated: `.vscode/tasks.json` adds “Public mirror: build (core_thinking)”.
+  - Verification: ran the new task (PASS; mirror regenerated).
+
+- New task (2026-01-29): push regenerated `public_mirror/` updates to the already-published mirror repo.
+  - Goal: update the public Git remote after regeneration.
+  - Steps: `git status` → `git add -A` → `git commit` → `git push` (from inside `public_mirror/`).
+
+- Completed (2026-01-29): published mirror repo updated.
+  - Repo: `public_mirror/` (remote: `https://github.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/`).
+  - Commit: “mirror: refresh core_thinking” (includes the HTML pages and updated manifest).
+
+- Note (2026-01-29): accidental main-repo push was reverted.
+  - Issue: an initial `cd /d ...` attempt ran `git add/commit/push` in the main repo instead of inside `public_mirror/`.
+  - Fix: created and pushed a revert commit immediately to restore main repo state.
+
+- New task (2026-01-30): publish a mirror-visible “VS Code chat + task contract” for automation.
+  - Goal: let other projects (e.g., `AI_Coder_Controller`) read the expected Copilot Chat setup (tabs/views) and the project task list from the public mirror.
+  - Approach: add a small doc under `docs/` (no secrets), include it in the `core_thinking` mirror allowlist, and keep the mirror build VS Code task present.
+  - Verification: regenerate mirror and run “AI Brain: eval”.
   - Verification: ran VS Code task “AI Brain: eval” (completed).
 
 - New task (2026-01-26): design a hardware-aware scaling plan for activity quantity.

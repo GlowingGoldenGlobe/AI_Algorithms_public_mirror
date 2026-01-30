@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import datetime
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 if REPO_ROOT not in sys.path:
@@ -28,7 +28,7 @@ def main() -> int:
     os.makedirs(report_dir, exist_ok=True)
 
     index: dict[str, object] = {
-        "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "generated_at": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
         "deterministic_mode": True,
         "report_dir": report_dir,
         "reports": [],

@@ -53,25 +53,10 @@ def resolve_path(category: str) -> str:
     }
     return os.path.join(ROOT, mapping.get(category, "LongTermStore"))
 
-def _atomic_write_json(target_path: str, data: Dict[str, Any], *, metrics_category: str | None = None) -> None:
+def _atomic_write_json(target_path: str, data: Dict[str, Any]) -> None:
     tmp_path = target_path + ".tmp"
     with open(tmp_path, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
-
-    # Lightweight storage-event metrics (best-effort).
-    try:
-        from module_metrics import add_counter, incr_counter
-
-        size_bytes = int(os.path.getsize(tmp_path))
-        incr_counter("storage_write_count_total", 1.0)
-        add_counter("storage_write_bytes_total", float(size_bytes))
-        if metrics_category:
-            key = str(metrics_category).strip().lower()
-            if key:
-                incr_counter(f"storage_write_count_{key}", 1.0)
-                add_counter(f"storage_write_bytes_{key}", float(size_bytes))
-    except Exception:
-        pass
     os.replace(tmp_path, target_path)
 
 def _backup_existing(file_path: str) -> None:
@@ -112,25 +97,9 @@ def store_information(data_id: str, content, category: str):
 
     schema_name = 'semantic' if category == 'semantic' else ('event' if category == 'event' else 'semantic')
 
-    record = None
     if os.path.exists(file_path):
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                record = json.load(f)
-        except Exception:
-            # If an existing record is corrupted (partial write / invalid JSON),
-            # preserve a backup and recreate a clean record.
-            try:
-                _backup_existing(file_path)
-            except Exception:
-                pass
-            try:
-                os.remove(file_path)
-            except Exception:
-                pass
-            record = None
-
-    if isinstance(record, dict):
+        with open(file_path, "r", encoding="utf-8") as f:
+            record = json.load(f)
         record["occurrence_count"] = int(record.get("occurrence_count", 0)) + 1
         # ensure category present for schema validation
         record.setdefault("category", category)
@@ -184,7 +153,7 @@ def store_information(data_id: str, content, category: str):
         _backup_existing(file_path)
         if not validate_record(record, schema_name):
             return f"Validation failed for existing record: {data_id}"
-        _atomic_write_json(file_path, record, metrics_category=category)
+        _atomic_write_json(file_path, record)
         # incremental index update for semantic records
         if category == 'semantic':
             try:
@@ -233,7 +202,7 @@ def store_information(data_id: str, content, category: str):
             }
         if not validate_record(record, schema_name):
             return f"Validation failed for new record: {data_id}"
-        _atomic_write_json(file_path, record, metrics_category=category)
+        _atomic_write_json(file_path, record)
         if category == 'semantic':
             try:
                 from module_tools import build_semantic_index
