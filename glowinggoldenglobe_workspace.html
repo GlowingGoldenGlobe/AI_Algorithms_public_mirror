@@ -1,0 +1,417 @@
+<!--
+GlowingGoldenGlobe Workspace Reference Page
+Matches AI_Algorithms public mirror styling.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GlowingGoldenGlobe Workspace Guide</title>
+<style>
+    :root {
+        --bg: #0b0d10;
+        --panel: #121621;
+        --panel2: #0f1320;
+        --text: #e7eef8;
+        --muted: #a9b7cc;
+        --accent: #66d9ef;
+        --accent2: #a6e22e;
+        --warn: #fd971f;
+        --border: #2a3243;
+        --shadow: rgba(0, 0, 0, 0.35);
+        --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        --sans: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    body {
+        background: var(--bg);
+        color: var(--text);
+        margin: 0;
+        font-family: var(--sans);
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header {
+        padding: 24px 18px;
+        border-bottom: 1px solid var(--border);
+        background: linear-gradient(180deg, #0b0d10 0%, #0b0d10 50%, rgba(18,22,33,0.75) 100%);
+    }
+
+    .wrap { max-width: 1100px; margin: 0 auto; }
+    h1 { margin: 0 0 6px 0; font-size: 26px; }
+    .subtitle { margin: 0; color: var(--muted); }
+
+    .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+        padding: 18px;
+    }
+
+    @media (min-width: 980px) {
+        .grid { grid-template-columns: 1.1fr 0.9fr; }
+    }
+
+    .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px;
+        box-shadow: 0 10px 24px var(--shadow);
+    }
+
+    .card h2 { margin: 0 0 10px 0; font-size: 18px; }
+    .card p { margin: 8px 0; color: var(--muted); }
+
+    ul { margin: 8px 0 0 18px; padding: 0; }
+    li { margin: 8px 0; }
+
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .cmd {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: center;
+        margin: 8px 0;
+        padding: 10px;
+        background: var(--panel2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+    }
+
+    .cmd code {
+        font-family: var(--mono);
+        font-size: 13px;
+        color: var(--text);
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    button {
+        border: 1px solid var(--border);
+        background: #0d1220;
+        color: var(--text);
+        border-radius: 10px;
+        padding: 10px 12px;
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    button:hover { border-color: var(--accent); }
+
+    .pill {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 12px;
+        font-family: var(--mono);
+        margin-left: 8px;
+    }
+
+    .hint {
+        margin: 8px 0 0 0;
+        font-size: 13px;
+        color: var(--muted);
+    }
+
+    .topnav {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: rgba(11, 13, 16, 0.92);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--border);
+    }
+
+    .topnav .wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 18px;
+    }
+
+    .topnav .menu {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .topnav .links {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .topnav .toggle {
+        display: none;
+        border: 1px solid var(--border);
+        background: #0d1220;
+        color: var(--text);
+        border-radius: 999px;
+        padding: 6px 10px;
+        cursor: pointer;
+        font-weight: 700;
+        font-family: var(--mono);
+        font-size: 12px;
+    }
+
+    .topnav .toggle:hover { border-color: var(--accent); }
+
+    .topnav a {
+        color: var(--text);
+        border: 1px solid var(--border);
+        background: #0d1220;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-family: var(--mono);
+        text-decoration: none;
+    }
+
+    .topnav a:hover { border-color: var(--accent); text-decoration: none; }
+
+    .topnav .brand {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    @media (max-width: 720px) {
+        .topnav .wrap { align-items: flex-start; }
+        .topnav .toggle { display: inline-block; }
+        .topnav .menu { width: 100%; justify-content: flex-end; }
+        .topnav .links { display: none; width: 100%; margin-top: 10px; justify-content: flex-end; }
+        .topnav[data-open="true"] .links { display: flex; }
+    }
+
+    footer {
+        border-top: 1px solid var(--border);
+        color: var(--muted);
+        padding: 18px;
+        font-size: 13px;
+    }
+</style>
+</head>
+<body>
+
+<nav class="topnav" aria-label="Quick navigation">
+    <div class="wrap">
+        <div class="brand">AI_Algorithms</div>
+        <div class="menu">
+            <button type="button" class="toggle" id="topnav_toggle" aria-expanded="false" aria-controls="topnav_links" onclick="toggleTopNav()">Menu</button>
+            <div class="links" id="topnav_links">
+                <a href="index.html">Dashboard</a>
+                <a href="learn.html">Learn</a>
+                <a href="dashboard.html">Metrics</a>
+                <a href="#top">Top</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<header id="top">
+    <div class="wrap">
+        <div class="row" style="justify-content: space-between; align-items: baseline;">
+            <div>
+                <h1>glowinggoldenglobe_venv <span class="pill">workspace reference</span></h1>
+                <p class="subtitle">Common actions, high-value files, and the ready-to-send prompt for orchestration child tabs.</p>
+            </div>
+            <div class="row" style="margin-top: 6px;">
+                <button type="button" onclick="location.href='index.html'">Open Dashboard</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="wrap">
+    <div class="grid">
+        <section class="card" id="overview">
+            <h2>Workspace Snapshot</h2>
+            <p>The restoration on 2026-01-30 brought humanoid focus queues, terminal briefs, and orchestration trackers back into alignment. Use this page as a launchpad before handing context to VSCode child agent tabs.</p>
+            <ul>
+                <li>Confirm queue ownership in orchestration/tasks/AI_LLM_Task_Plan_20260130.md.</li>
+                <li>Check active runs in orchestration/tasks/focus_execution_progress_20260130.md.</li>
+                <li>Review terminal briefs in orchestration/VSCode_agent_mode/tasks/ before delegating work.</li>
+                <li>Update queue files (project_tasks.json, task_queue.json) immediately after outputs land.</li>
+            </ul>
+        </section>
+
+        <section class="card" id="actions">
+            <h2>Common Actions</h2>
+            <ul>
+                <li>Run python -m orchestration.vscode_orchestration_gpt5.orchestrator.main status to verify post-restore artifacts.</li>
+                <li>Open orchestration/tasks/AI_LLM_Task_Plan_20260130.md and confirm focus folder responsibilities.</li>
+                <li>Compare project_tasks.json and task_queue.json for stale owners or missing timestamps.</li>
+                <li>Log new outputs in orchestration/tasks/focus_execution_progress_20260130.md before closing a run.</li>
+                <li>Attach the relevant terminal_[n]_task.md files when prompting VSCode child agent tabs.</li>
+            </ul>
+        </section>
+
+        <section class="card" id="files">
+            <h2>High-Value Files</h2>
+            <ul>
+                <li><a href="orchestration/tasks/AI_LLM_Task_Plan_20260130.md">orchestration/tasks/AI_LLM_Task_Plan_20260130.md</a> — Queue ownership and post-delivery expectations.</li>
+                <li><a href="orchestration/tasks/focus_execution_progress_20260130.md">orchestration/tasks/focus_execution_progress_20260130.md</a> — Active run checkpoints and due times.</li>
+                <li><a href="project_tasks.json">project_tasks.json</a> — Authoritative project queue.</li>
+                <li><a href="task_queue.json">task_queue.json</a> — Dispatch-order queue consumed by automation.</li>
+                <li><a href="orchestration/VSCode_agent_mode/tasks/terminal_2_task.md">terminal_2_task.md</a>, <a href="orchestration/VSCode_agent_mode/tasks/terminal_3_task.md">terminal_3_task.md</a>, <a href="orchestration/VSCode_agent_mode/tasks/terminal_4_task.md">terminal_4_task.md</a>, <a href="orchestration/VSCode_agent_mode/tasks/terminal_6_task.md">terminal_6_task.md</a> — Updated terminal briefs with post-delivery checklist.</li>
+                <li><a href="orchestration/vscode_orchestration_gpt5/tab_tasks/TAB_SYSTEM_OVERVIEW.md">TAB_SYSTEM_OVERVIEW.md</a> — Attachment protocol for chat agent tabs.</li>
+            </ul>
+        </section>
+
+        <section class="card" id="queue">
+            <h2>Queue & Tracker Updates</h2>
+            <p>Every deliverable must be mirrored across the canonical queue and tracker artifacts.</p>
+            <ul>
+                <li>Document completions in project_tasks.json and task_queue.json before closing a terminal session.</li>
+                <li>Append timestamps, file paths, and next checkpoints to orchestration/tasks/focus_execution_progress_20260130.md.</li>
+                <li>Capture anomalies in daily_sync_report.json so follow-up pings carry the correct blockers.</li>
+                <li>If automation is running, confirm the change propagated by checking claude_code_tasks.log.</li>
+            </ul>
+            <p class="hint">The post-delivery reminder is embedded in each terminal task brief—use it as the authoritative procedure.</p>
+        </section>
+
+        <section class="card" id="prompt">
+            <h2>Prompt for Orchestration Child Tabs</h2>
+            <div class="cmd"><code id="cmd_prompt">You are the VSCode GPT-5 child agent resuming the humanoid focus queues after the January 30, 2026 restoration.
+
+Attached:
+- orchestration/VSCode_agent_mode/tasks/terminal_2_task.md
+- orchestration/VSCode_agent_mode/tasks/terminal_3_task.md
+- orchestration/VSCode_agent_mode/tasks/terminal_4_task.md
+- orchestration/VSCode_agent_mode/tasks/terminal_6_task.md
+- orchestration/tasks/AI_LLM_Task_Plan_20260130.md
+- orchestration/tasks/focus_execution_progress_20260130.md
+- project_tasks.json
+- task_queue.json
+
+Instructions:
+1. Review each terminal brief to confirm deliverables and the post-delivery update procedure.
+2. Cross-check queue priorities with AI_LLM_Task_Plan_20260130.md and focus_execution_progress_20260130.md; flag any gaps.
+3. Execute the listed deliverables and capture outputs for each terminal assignment.
+4. Update project_tasks.json, task_queue.json, and orchestration/tasks/focus_execution_progress_20260130.md with completion notes before sign-off.
+5. Return a checkpoint summary showing produced artifacts, queue/tracker edits, next checkpoints, and blockers.
+
+Deliverables:
+- Execution notes for Terminals 2, 3, 4, and 6 covering sensors, wrists/hands, quality, and feedback loops.
+- Updated queue/tracker entries plus a brief status log ready for orchestration review.</code><button type="button" onclick="copyCmd('cmd_prompt')">Copy</button></div>
+            <p id="copy_status" class="hint">Copy status will appear here.</p>
+        </section>
+
+        <section class="card" id="attachments">
+            <h2>Attachment Checklist</h2>
+            <ul>
+                <li>Relevant terminal briefs from orchestration/VSCode_agent_mode/tasks/.</li>
+                <li>Queue source files: project_tasks.json and task_queue.json.</li>
+                <li>orchestration/tasks/AI_LLM_Task_Plan_20260130.md for ownership context.</li>
+                <li>orchestration/tasks/focus_execution_progress_20260130.md for active checkpoints.</li>
+                <li>Any fresh deliverables (reports, JSON outputs, markdown notes) produced in the current run.</li>
+            </ul>
+            <p class="hint">Mention attached filenames in the chat prompt so the child tab can cite them in responses.</p>
+        </section>
+
+        <section class="card" id="commands">
+            <h2>Status & Verification Commands</h2>
+            <div class="cmd"><code id="cmd_status">python -m orchestration.vscode_orchestration_gpt5.orchestrator.main status</code><button type="button" onclick="copyCmd('cmd_status')">Copy</button></div>
+            <div class="cmd"><code id="cmd_plan">code orchestration/tasks/AI_LLM_Task_Plan_20260130.md</code><button type="button" onclick="copyCmd('cmd_plan')">Copy</button></div>
+            <div class="cmd"><code id="cmd_tracker">code orchestration/tasks/focus_execution_progress_20260130.md</code><button type="button" onclick="copyCmd('cmd_tracker')">Copy</button></div>
+            <div class="cmd"><code id="cmd_queue">code project_tasks.json task_queue.json</code><button type="button" onclick="copyCmd('cmd_queue')">Copy</button></div>
+            <p class="hint">Run these from the repo root (C:\Users\yerbr\glowinggoldenglobe_venv).</p>
+        </section>
+    </div>
+</main>
+
+<footer>
+    <div class="wrap">
+        <div>Updated: <span id="updated_on"></span></div>
+        <div class="hint">Keep this page attached whenever seeding a new VSCode Agent Mode conversation.</div>
+    </div>
+</footer>
+
+<script type="text/javascript">
+    function toggleTopNav() {
+        const nav = document.querySelector('.topnav');
+        const btn = document.getElementById('topnav_toggle');
+        if (!nav || !btn) return;
+        const isOpen = String(nav.getAttribute('data-open') || 'false') === 'true';
+        const next = (!isOpen);
+        nav.setAttribute('data-open', next ? 'true' : 'false');
+        btn.setAttribute('aria-expanded', next ? 'true' : 'false');
+    }
+
+    function closeTopNav() {
+        const nav = document.querySelector('.topnav');
+        const btn = document.getElementById('topnav_toggle');
+        if (!nav || !btn) return;
+        nav.setAttribute('data-open', 'false');
+        btn.setAttribute('aria-expanded', 'false');
+    }
+
+    function normalizeCopiedText(text) {
+        const raw = String(text || "").replace(/\r\n/g, "\n");
+        let lines = raw.split("\n");
+        while (lines.length && String(lines[0]).trim() === "") lines.shift();
+        while (lines.length && String(lines[lines.length - 1]).trim() === "") lines.pop();
+        let minIndent = null;
+        for (const line of lines) {
+            if (String(line).trim() === "") continue;
+            const match = String(line).match(/^[ \t]+/);
+            const indent = match ? match[0].length : 0;
+            if (minIndent === null) minIndent = indent;
+            else minIndent = Math.min(minIndent, indent);
+        }
+        if (minIndent && minIndent > 0) {
+            lines = lines.map((line) => {
+                if (String(line).startsWith(" ".repeat(minIndent))) return String(line).slice(minIndent);
+                if (String(line).startsWith("\t")) return String(line).slice(1);
+                return line;
+            });
+        }
+        return lines.join("\n");
+    }
+
+    function copyCmd(id) {
+        const el = document.getElementById(id);
+        const status = document.getElementById('copy_status');
+        const textRaw = el ? (el.innerText || el.textContent || "") : "";
+        const text = normalizeCopiedText(textRaw);
+        if (!text) {
+            if (status) status.textContent = "Nothing to copy.";
+            return;
+        }
+        if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                if (status) status.textContent = "Copied.";
+            }).catch(() => {
+                if (status) status.textContent = "Copy failed (browser permissions).";
+            });
+        } else {
+            if (status) status.textContent = "Clipboard API unavailable.";
+        }
+    }
+
+    (function init() {
+        const nav = document.querySelector('.topnav');
+        if (nav) nav.setAttribute('data-open', 'false');
+        const links = document.querySelectorAll('#topnav_links a');
+        if (links && links.length) {
+            links.forEach((a) => {
+                a.addEventListener('click', () => { closeTopNav(); });
+            });
+        }
+        const updated = document.getElementById('updated_on');
+        if (updated) updated.textContent = '2026-01-30';
+    })();
+</script>
+</body>
+</html>
