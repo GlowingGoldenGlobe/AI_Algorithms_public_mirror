@@ -1,0 +1,51 @@
+{
+  "hardware_preflight": {
+    "file": {
+      "bytes": 2585,
+      "exists": true,
+      "mtime": 1769900743.56792,
+      "path": "c:\\Users\\yerbr\\AI_Algorithms\\TemporaryQueue\\hardware_preflight.json"
+    },
+    "summary": {
+      "disk_free_percent": 70.37008414660521,
+      "enforce": true,
+      "ok": true,
+      "ts": "2026-01-31T23:05:43Z",
+      "violations": 0
+    }
+  },
+  "ok": true,
+  "orchestrator": {
+    "ok": true,
+    "paused": false
+  },
+  "server": {
+    "bind": "127.0.0.1",
+    "image": "python3.13.exe",
+    "pid": 210776,
+    "ping": {
+      "body": "{\"ok\": true, \"ts\": 1769933449.329142}",
+      "ok": true,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/ping"
+    },
+    "port": 8000,
+    "port_open": true
+  },
+  "ts": "2026-02-01T08:10:49Z",
+  "watcher": {
+    "live": {
+      "bytes": 1637,
+      "exists": true,
+      "mtime": 1769933427.749776,
+      "path": "c:\\Users\\yerbr\\AI_Algorithms\\TemporaryQueue\\ai_brain_metrics_live.json"
+    },
+    "live_age_sec": 21.886338472366333,
+    "ok": true,
+    "stop_file": {
+      "exists": false,
+      "path": "c:\\Users\\yerbr\\AI_Algorithms\\TemporaryQueue\\ai_brain_metrics.stop"
+    },
+    "temp_dir": "c:\\Users\\yerbr\\AI_Algorithms\\TemporaryQueue"
+  }
+}

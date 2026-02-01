@@ -14,8 +14,8 @@ This folder bundles the files requested for the Microsoft Copilot deep research 
 - AI_Brain/README.md — 3D measurement core overview.
 - AI_Brain/ARCHITECTURE.md — Layered architecture of the 3D core.
 - AI_Brain/NEXT_TASKS.md — Pending upgrades for the 3D subsystem.
-- TemporaryQueue/metrics.json — Latest run metrics snapshot (deterministic mode).
-- TemporaryQueue/ops_status.json — Recent ops status report (dashboard + orchestrator health).
+- Snapshots/metrics.json — Latest run metrics snapshot (deterministic mode).
+- Snapshots/ops_status.json — Recent ops status report (dashboard + orchestrator health).
 
 ## Usage Notes
 

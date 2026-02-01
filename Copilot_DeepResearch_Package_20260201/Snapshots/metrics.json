@@ -1,0 +1,8 @@
+{
+  "deterministic_mode": true,
+  "fixed_timestamp": "2025-01-01T00:00:00Z",
+  "metrics": {
+    "resolution_fixed_samples_total": 2720.0
+  },
+  "schema_version": "1.0"
+}
