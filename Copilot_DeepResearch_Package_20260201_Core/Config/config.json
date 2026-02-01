@@ -1,0 +1,179 @@
+{
+  "search": {
+    "provider": "auto",
+    "top": 5
+  },
+  "llm": {
+    "provider": "auto",
+    "openai_model": "gpt-4o-mini",
+    "max_tokens": 300
+  },
+  "persist": {
+    "capture_search_snippets": true,
+    "capture_llm_snippets": true
+  },
+  "measurement_migration": {
+    "enable": false,
+    "similarity_method": "jaccard",
+    "use_measurement_similarity": false,
+    "use_measurement_usefulness": false,
+    "disable_external_tools": false
+  },
+  "want_migration": {
+    "enable": false,
+    "min_strength": 0.35,
+    "max_wants": 5
+  },
+  "selection_migration": {
+    "enable": false,
+    "use_concept_measure": true,
+    "use_retrieval_scores": false,
+    "objective_alignment_threshold": 0.6,
+    "retrieval_objective_alignment_threshold": 0.6,
+    "score_boost": 0.2
+  },
+  "orchestration_migration": {
+    "enable": true,
+    "max_steps": 2,
+    "trace_cap": 5,
+    "include_debug": true,
+    "include_advisory": true,
+    "include_cycle_artifact": true,
+    "objective_influence_metrics": {
+      "enabled": false,
+      "top_k": 5,
+      "compute_retrieval_diff": true
+    },
+    "soft_influence": {
+      "enabled": false,
+      "scale": 0.1,
+      "max_delta": 0.05,
+      "prevent_space_flip": true
+    }
+  },
+  "collector": {
+    "max_terminals": 8,
+    "timeout_seconds": 15,
+    "modules_allowlist": [
+      "module_measure",
+      "module_awareness",
+      "search_internet",
+      "module_scheduler",
+      "module_select",
+      "module_storage",
+      "module_toggle"
+    ],
+    "merge_outputs": true,
+    "de_dupe": true,
+    "history_cap": 50,
+    "merge_strategy": "append",
+    "dry_run": false,
+    "module_timeouts": {
+      "module_measure": 20,
+      "module_awareness": 10,
+      "search_internet": 30,
+      "module_scheduler": 15,
+      "module_select": 10,
+      "module_storage": 10,
+      "module_toggle": 10
+    },
+    "enable_resource_metrics": true,
+    "activity_summary_level": "detailed",
+    "strategy_overrides": {
+      "module_scheduler": "replace",
+      "module_select": "summarize"
+    }
+  },
+  "measurement_weights": {
+    "similarity": 0.4,
+    "usefulness": 0.4,
+    "repeat": 0.1,
+    "contradiction": -0.6,
+    "synthesis_bias": 0.2,
+    "review_bias": 0.1
+  },
+  "determinism": {
+    "deterministic_mode": true,
+    "fixed_timestamp": "2025-01-01T00:00:00Z"
+  },
+  "feature_flags": {
+    "use_rollback_resolution": false
+  },
+  "error_resolution": {
+    "adaptive_sampling": {
+      "enabled": false,
+      "n_min": 32,
+      "multiplier": 10.0
+    },
+    "rollback_storm_policy": {
+      "enabled": false,
+      "max_rollbacks": 3,
+      "ci_gate": {
+        "enabled": true,
+        "max_escalations": 0
+      }
+    }
+  },
+  "verifier": {
+    "p_threshold": 0.05,
+    "min_effect_size": 1e-06,
+    "confidence_threshold": 0.8,
+    "adaptive_sampling": {
+      "enabled": false,
+      "n_min": 32,
+      "n0": 64,
+      "n_max": 256,
+      "multiplier": 2,
+      "early_stop_margin": 0.01,
+      "regression_gate": {
+        "enabled": true,
+        "max_disagreement_rate": 0.0,
+        "min_cases": 1
+      }
+    }
+  },
+  "policy": {
+    "activation": {
+      "sel_min_ben_syn": 0.45,
+      "composite_activate": 0.58
+    }
+  },
+  "hardware_limits": {
+    "enforce": true,
+    "min_free_disk_percent": 5.0,
+    "min_free_disk_bytes": 2147483648,
+    "min_avail_ram_bytes": 536870912,
+    "dirs": {
+      "temporary": {
+        "max_files": 50000,
+        "max_bytes_fraction_of_disk": 0.02,
+        "max_bytes_cap": 5368709120
+      },
+      "active": {
+        "max_files": 200000,
+        "max_bytes_fraction_of_disk": 0.05,
+        "max_bytes_cap": 10737418240
+      },
+      "holding": {
+        "max_files": 1000000,
+        "max_bytes_fraction_of_disk": 0.8,
+        "max_bytes_cap": 214748364800
+      },
+      "semantic": {
+        "max_files": 800000,
+        "max_bytes_fraction_of_disk": 0.6,
+        "max_bytes_cap": 161061273600
+      },
+      "procedural": {
+        "max_files": 400000,
+        "max_bytes_fraction_of_disk": 0.25,
+        "max_bytes_cap": 53687091200
+      },
+      "event": {
+        "max_files": 400000,
+        "max_bytes_fraction_of_disk": 0.1,
+        "max_bytes_cap": 21474836480
+      }
+    }
+  }
+}

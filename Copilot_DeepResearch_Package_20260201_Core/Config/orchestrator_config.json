@@ -1,0 +1,45 @@
+{
+  "interval_sec": 900,
+  "max_cycles": 0,
+  "health": {
+    "enabled": false,
+    "host": "127.0.0.1",
+    "port": 8765
+  },
+  "jobs": [
+    {
+      "name": "status",
+      "kind": "cli",
+      "every_cycles": 1,
+      "argv": ["status", "--det", "--policy-rate", "--recent", "3"]
+    },
+    {
+      "name": "det",
+      "kind": "cli",
+      "every_cycles": 6,
+      "argv": ["det", "--quiet"]
+    },
+    {
+      "name": "eval",
+      "kind": "cli",
+      "every_cycles": 12,
+      "argv": ["eval", "--quiet"]
+    },
+    {
+      "name": "gc",
+      "kind": "cli",
+      "every_cycles": 24,
+      "argv": ["gc", "--collectors", "50", "--temp-days", "7", "--cycles", "200", "--yes"]
+    }
+  ],
+  "mirror": {
+    "enabled": false,
+    "every_cycles": 24,
+    "argv": ["scripts/create_public_mirror.py", "--profile", "core_thinking", "--preserve-git"],
+    "allow_git_push": false
+  },
+  "packagesuite": {
+    "enabled": true,
+    "path": "Vendor/PackageSuite_ProjectDivisionAIWorkflow"
+  }
+}

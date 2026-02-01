@@ -1,0 +1,68 @@
+{
+  "interval_sec": 1800,
+  "max_cycles": 0,
+  "health": {
+    "enabled": false,
+    "host": "127.0.0.1",
+    "port": 8765
+  },
+  "jobs": [
+    {
+      "name": "status",
+      "kind": "cli",
+      "every_cycles": 1,
+      "argv": ["status", "--det", "--policy-rate", "--recent", "3"]
+    },
+    {
+      "name": "det",
+      "kind": "cli",
+      "every_cycles": 4,
+      "argv": ["det", "--quiet"]
+    },
+    {
+      "name": "canary",
+      "kind": "script",
+      "every_cycles": 4,
+      "argv": ["scripts/canary_cycle_checks.py", "--fail-fast"]
+    },
+    {
+      "name": "adversarial_bundle",
+      "kind": "script",
+      "every_cycles": 12,
+      "argv": ["scripts/run_adversarial_bundle.py"]
+    },
+    {
+      "name": "policy_tune_gate",
+      "enabled": false,
+      "kind": "script",
+      "every_cycles": 24,
+      "argv": [
+        "scripts/policy_tune_gate.py",
+        "--target-rate",
+        "0.35",
+        "--recent",
+        "100",
+        "--sel-range",
+        "0.25:0.55:0.05",
+        "--comp-range",
+        "0.45:0.70:0.03"
+      ]
+    },
+    {
+      "name": "gc",
+      "kind": "cli",
+      "every_cycles": 24,
+      "argv": ["gc", "--collectors", "50", "--temp-days", "7", "--cycles", "200", "--yes"]
+    }
+  ],
+  "mirror": {
+    "enabled": false,
+    "every_cycles": 24,
+    "argv": ["scripts/create_public_mirror.py", "--profile", "core_thinking", "--preserve-git"],
+    "allow_git_push": false
+  },
+  "packagesuite": {
+    "enabled": true,
+    "path": "Vendor/PackageSuite_ProjectDivisionAIWorkflow"
+  }
+}
