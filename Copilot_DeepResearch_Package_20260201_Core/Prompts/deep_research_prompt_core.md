@@ -1,30 +1,19 @@
-# Deep Research Prompt — Core System (2026-02-01)
+# Deep Research Prompt for Copilot DeepResearch Package Core
 
-Use this prompt when asking Microsoft Copilot (Deep Research) for guidance on upgrading or repairing the AI Brain while preserving its core measurement-first design.
+**Goal:** Obtain authoritative guidance on deterministic measurement harnesses, 3D-to-relational mapping best practices, and integration test patterns for AI bridge modules.
 
-## Paste-Ready Prompt
+**Context:** Repository: Copilot_DeepResearch_Package_20260201_Core. Target files: module_ai_brain_bridge.py, module_relational_adapter.py, module_measure.py. Tests must be deterministic using timestamp `2025-01-01T00:00:00Z`.
 
-You are Microsoft Copilot (Deep Research). Review the attached files from public_mirror/Copilot_DeepResearch_Package_20260201_Core:
+**Questions to answer:**
+1. Recommended interface contract for an AI bridge module that accepts 3D measurements and an AI client, and returns a relational mapping suitable for downstream adapters.
+2. Deterministic testing patterns for measurement pipelines that rely on time, randomness, or external services.
+3. Minimal, robust schema for relational mapping output (required keys, types, and validation rules).
+4. Common pitfalls when mocking AI brain clients and how to avoid brittle tests.
+5. Example unit and integration test snippets (Python/pytest) that are CI-friendly and do not require external binaries.
 
-- Docs/README.md, Docs/DESIGN_GOALS.md, Docs/AGENT.md, Docs/ASSESSMENT_PROCEDURE.md
-- Config/config.json, Config/orchestrator_config.json, Config/orchestrator_config_assessment.json
-- Modules/module_integration.py, Modules/module_ai_brain_bridge.py, Modules/module_relational_adapter.py, Modules/module_measure.py
-- Scripts/run_eval.py, Scripts/hardware_limits_check.py, Scripts/ops_status_report.py
-- Telemetry/metrics.json, Telemetry/ops_status.json
-- temp_Feb2026_1.md (current task log)
+**Deliverable format:** concise report (max 2 pages) with:
+- 5–8 bullet recommendations
+- 2 short code snippets (one mock, one test)
+- A short checklist for converting a flaky test into a deterministic one
 
-Context: AI Brain is a deterministic, measurement-first pipeline. Determinism is enabled (fixed timestamp 2025-01-01T00:00:00Z). Workflows require pausing the orchestrator before running eval/canary tasks. Path safety helpers: sanitize_id, safe_join, resolve_path. Environment: Windows PowerShell.
-
-Deliverables requested:
-1. Ranked recommendations (top 5) for upgrading or repairing core system behavior while preserving relational measurement, objective reality logic, rational judgment, and objective seeking loops.
-   - For each recommendation: affected files/modules, rationale, risk assessment (impact on determinism, complexity), verification plan (commands/tasks/tests, telemetry to inspect).
-2. Suggestions for strengthening operational safety (hardware limits, single-writer enforcement) without breaking the unique deterministic workflow.
-3. References or patterns relevant to measurement-first cognitive systems (no probabilistic LLM replacements).
-4. PASS/FAIL checklist covering preconditions (pause orchestrator, determinism check), implementation steps, and required verification (eval suite, dashboards, documentation updates).
-
-Tailor responses for a Windows PowerShell workflow and favor deterministic-friendly tooling.
-
-## Notes
-
-- Attach the folder contents plus this file when submitting the prompt.
-- Mention any additional context from temp_Feb2026_1.md if important.
+**Constraints:** Prefer authoritative sources (academic papers, engineering blogs from major AI infra teams, official pytest docs). Cite sources inline.

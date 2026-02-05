@@ -1,4 +1,4 @@
-# Copilot Deep Research Package — Core System (2026-02-01)
+# Copilot Deep Research Package — Core System (2026-02-05)
 
 This package captures the key artifacts required to analyze or upgrade the AI Brain’s core deterministic workflow.
 
@@ -23,9 +23,15 @@ This package captures the key artifacts required to analyze or upgrade the AI Br
   - run_eval.py — Evaluation harness (acceptance gate).
   - hardware_limits_check.py — Hardware safety preflight.
   - ops_status_report.py — Operational status snapshot generator.
+  - agent_run.sh — Deterministic test harness runner (telemetry-emitting pytest wrapper).
+- Tests/
+  - agent_integration_test.py — 3D bridge deterministic integration test using mock AI Brain.
+  - mocks/mock_ai_brain.py — Reusable deterministic measurement engine mock.
 - Telemetry/
   - metrics.json — Latest metrics snapshot (deterministic mode enabled).
   - ops_status.json — Latest ops report (dashboard/orchestrator health).
+- .vscode/tasks.json — VS Code task wiring for deterministic agent runs.
+- .github/PULL_REQUEST_TEMPLATE.md — Deterministic checklist used for PR reviews.
 - Prompts/deep_research_prompt_core.md — Paste-ready prompt text for Microsoft Copilot Deep Research.
 
 ## Usage Notes
@@ -36,4 +42,4 @@ This package captures the key artifacts required to analyze or upgrade the AI Br
 
 ## Source
 
-All files copied from the root workspace on 2026-02-01.
+All files copied from the root workspace on 2026-02-05.

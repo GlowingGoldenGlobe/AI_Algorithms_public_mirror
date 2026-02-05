@@ -1,8 +1,20 @@
 import json
+import re
+import time
+import logging
+from copy import deepcopy
 from typing import Any, Dict, List, Optional, TypedDict
 
-from module_ai_brain_bridge import measure_ai_brain_for_record
+from module_ai_brain_bridge import (
+    measure_ai_brain_for_record,
+    get_3d_limits,
+    peek_cached_measurement,
+    get_3d_determinism_config,
+)
 from module_storage import _atomic_write_json
+
+
+logger = logging.getLogger(__name__)
 
 
 class Raw3DObject(TypedDict):
@@ -40,6 +52,94 @@ class RelationalState(TypedDict):
     contexts: dict[str, Any]
 
 
+_CYCLE_STALE_SECONDS = 15 * 60
+_DEFAULT_CYCLE_ID = "__default__"
+_CYCLE_ID_REGEX = re.compile(r"(cycle_[A-Za-z0-9_-]+)", re.IGNORECASE)
+
+_3d_cycle_counters: Dict[str, Dict[str, Any]] = {}
+
+
+def _extract_spatial_path_from_record(rec: Dict[str, Any]) -> Optional[str]:
+    for key in ("spatial_asset_path", "point_cloud_path", "mesh_path"):
+        val = rec.get(key)
+        if isinstance(val, str) and val.strip():
+            return val.strip()
+    meta = rec.get("metadata") if isinstance(rec, dict) else None
+    if isinstance(meta, dict):
+        for key in ("spatial_asset_path", "point_cloud_path", "mesh_path"):
+            val = meta.get(key)
+            if isinstance(val, str) and val.strip():
+                return val.strip()
+    return None
+
+
+def _extract_units_from_record(rec: Dict[str, Any]) -> str:
+    units = "meters"
+    try:
+        candidate = rec.get("units")
+        if not (isinstance(candidate, str) and candidate.strip()):
+            meta = rec.get("metadata") if isinstance(rec, dict) else None
+            if isinstance(meta, dict):
+                candidate = meta.get("units")
+        if isinstance(candidate, str) and candidate.strip():
+            units = candidate.strip()
+    except Exception:
+        pass
+    return units
+
+
+def _derive_cycle_identifier(rec: Dict[str, Any], record_path: str) -> str:
+    candidates = [
+        rec.get("cycle_id") if isinstance(rec, dict) else None,
+        (rec.get("cycle_artifact") or {}).get("cycle_id") if isinstance(rec, dict) else None,
+        (rec.get("metadata") or {}).get("cycle_id") if isinstance(rec, dict) else None,
+    ]
+    for candidate in candidates:
+        if isinstance(candidate, str) and candidate.strip():
+            return candidate.strip()
+
+    record_id = rec.get("id") if isinstance(rec, dict) else None
+    if isinstance(record_id, str) and record_id.strip():
+        return record_id.strip()
+
+    match = _CYCLE_ID_REGEX.search(record_path or "")
+    if match:
+        return match.group(1)
+
+    return _DEFAULT_CYCLE_ID
+
+
+def _prune_stale_cycle_counters(now: float) -> None:
+    stale = [
+        key
+        for key, entry in _3d_cycle_counters.items()
+        if now - entry.get("last_seen", now) > _CYCLE_STALE_SECONDS
+    ]
+    for key in stale:
+        _3d_cycle_counters.pop(key, None)
+
+
+def _get_cycle_tracker(cycle_id: str, now: float) -> Dict[str, Any]:
+    tracker = _3d_cycle_counters.get(cycle_id)
+    if not tracker:
+        tracker = {"count": 0, "last_seen": now}
+        _3d_cycle_counters[cycle_id] = tracker
+    else:
+        tracker["last_seen"] = now
+    return tracker
+
+
+def reset_3d_cycle_counters() -> None:
+    _3d_cycle_counters.clear()
+
+
+def get_3d_cycle_counters_snapshot() -> Dict[str, Any]:
+    return {
+        cycle_id: {"count": entry.get("count", 0), "last_seen": entry.get("last_seen")}
+        for cycle_id, entry in _3d_cycle_counters.items()
+    }
+
+
 def _ensure_relational_state(rec: Dict[str, Any]) -> Dict[str, Any]:
     rs = rec.get("relational_state")
     if not isinstance(rs, dict):
@@ -52,8 +152,8 @@ def _ensure_relational_state(rec: Dict[str, Any]) -> Dict[str, Any]:
     rs.setdefault("objective_links", [])
     rs.setdefault("spatial_measurement", None)
     rs.setdefault("decision_trace", {})
+    rs.setdefault("bridge_outputs", [])
 
-    # Normalize list fields if corrupted.
     if not isinstance(rs.get("entities"), list):
         rs["entities"] = []
     if not isinstance(rs.get("relations"), list):
@@ -62,6 +162,8 @@ def _ensure_relational_state(rec: Dict[str, Any]) -> Dict[str, Any]:
         rs["constraints"] = []
     if not isinstance(rs.get("objective_links"), list):
         rs["objective_links"] = []
+    if not isinstance(rs.get("bridge_outputs"), list):
+        rs["bridge_outputs"] = []
 
     return rs
 
@@ -159,53 +261,143 @@ def _remove_prior_3d_subject(rows: List[Dict[str, Any]], entity_id: str) -> None
         if not (
             isinstance(r, dict)
             and r.get("source") == "3d"
-            and (r.get("subj") == entity_id or (isinstance((r.get("args") or {}), dict) and (r.get("args") or {}).get("entity_id") == entity_id))
+            and (
+                r.get("subj") == entity_id
+                or (
+                    isinstance((r.get("args") or {}), dict)
+                    and (r.get("args") or {}).get("entity_id") == entity_id
+                )
+            )
         )
     ]
 
 
+def _persist_bridge_outputs(
+    rs: Dict[str, Any],
+    normalized: Dict[str, Any],
+    *,
+    record_id: str,
+    record_path: str,
+) -> None:
+    outputs = rs.setdefault("bridge_outputs", [])
+    if not isinstance(outputs, list):
+        outputs = []
+        rs["bridge_outputs"] = outputs
+
+    entry = deepcopy(normalized)
+    entry.setdefault("record_id", record_id)
+    entry.setdefault("record_path", record_path)
+    timestamp = entry.get("timestamp")
+
+    outputs[:] = [
+        existing
+        for existing in outputs
+        if not (
+            isinstance(existing, dict)
+            and existing.get("record_id") == record_id
+            and existing.get("timestamp") == timestamp
+        )
+    ]
+    outputs.append(entry)
+
+
 def attach_spatial_relational_state(record_path: str) -> Dict[str, Any]:
-    """Attach AI_Brain 3D measurement mapped into a RelationalState.
+    now = time.time()
+    _prune_stale_cycle_counters(now)
 
-    - If the record has no spatial asset path, returns status=skipped.
-    - If measurement fails, returns status=error.
-    - If measurement completes but ok=false, stores the measurement block and returns status=skipped.
+    try:
+        with open(record_path, "r", encoding="utf-8") as handle:
+            rec = json.load(handle)
+    except Exception:
+        return {"record_path": record_path, "status": "error", "reason": "failed to load record"}
 
-    The updated relational_state is written back atomically.
-    """
-    # 1) Measure (bridge handles reading record + extracting spatial path)
-    out = measure_ai_brain_for_record(record_path)
-    status = out.get("status")
+    if not isinstance(rec, dict):
+        return {"record_path": record_path, "status": "error", "reason": "record_not_object"}
+
+    spatial_path = _extract_spatial_path_from_record(rec)
+    if not spatial_path:
+        return {"record_path": record_path, "status": "skipped", "reason": "no spatial asset path in record"}
+
+    units = _extract_units_from_record(rec)
+    determinism_config = get_3d_determinism_config()
+    limits = get_3d_limits()
+    max_calls = limits.get("3d_max_calls_per_cycle", 0)
+
+    measurement_out = peek_cached_measurement(
+        spatial_path,
+        units=units,
+        determinism_config=determinism_config,
+        limits=limits,
+    )
+
+    cycle_tracker: Optional[Dict[str, Any]] = None
+    cycle_id = _derive_cycle_identifier(rec, record_path)
+
+    if measurement_out is not None:
+        measurement_out["record_path"] = record_path
+    else:
+        if max_calls and max_calls > 0:
+            cycle_tracker = _get_cycle_tracker(cycle_id, now)
+            if cycle_tracker.get("count", 0) >= max_calls:
+                logger.debug(
+                    "3D measurement call limit reached for cycle %s (limit=%s)",
+                    cycle_id,
+                    max_calls,
+                )
+                return {
+                    "record_path": record_path,
+                    "status": "skipped",
+                    "reason": "3d_call_limit_reached",
+                    "cycle_id": cycle_id,
+                    "limit": max_calls,
+                }
+            cycle_tracker["count"] = cycle_tracker.get("count", 0) + 1
+
+        measurement_out = measure_ai_brain_for_record(
+            record_path,
+            record=rec,
+            determinism_config=determinism_config,
+            units=units,
+        )
+
+        if cycle_tracker is not None:
+            cycle_tracker["last_seen"] = time.time()
+            if measurement_out.get("cache_hit"):
+                cycle_tracker["count"] = max(0, cycle_tracker.get("count", 0) - 1)
+
+    status = measurement_out.get("status")
     if status != "completed":
-        # Preserve the bridge contract.
         return {
             "record_path": record_path,
             "status": status or "error",
-            "reason": out.get("reason") or out.get("error") or "measurement_not_completed",
+            "reason": measurement_out.get("reason")
+            or measurement_out.get("error")
+            or "measurement_not_completed",
         }
 
-    measurement = out.get("measurement")
+    measurement = measurement_out.get("measurement")
     if not isinstance(measurement, dict):
         return {"record_path": record_path, "status": "error", "reason": "missing measurement block"}
-
-    # 2) Load record
-    try:
-        with open(record_path, "r", encoding="utf-8") as f:
-            rec = json.load(f)
-    except Exception:
-        return {"record_path": record_path, "status": "error", "reason": "failed to load record"}
 
     record_id = rec.get("id") if isinstance(rec, dict) else None
     if not isinstance(record_id, str) or not record_id:
         record_id = "unknown"
 
-    # 3) Ensure relational_state container
     rs = _ensure_relational_state(rec)
 
-    # Always store the raw measurement (even if ok=false) as evidence.
+    normalized_payloads = measurement_out.get("bridge_normalized")
+    if isinstance(normalized_payloads, dict):
+        normalized_payloads_iter = [normalized_payloads]
+    elif isinstance(normalized_payloads, list):
+        normalized_payloads_iter = [payload for payload in normalized_payloads if isinstance(payload, dict)]
+    else:
+        normalized_payloads_iter = []
+
+    for payload in normalized_payloads_iter:
+        _persist_bridge_outputs(rs, payload, record_id=record_id, record_path=record_path)
+
     rs["spatial_measurement"] = measurement
 
-    # If measurement signals failure, do not attach derived entities/relations/constraints.
     if measurement.get("ok") is False:
         try:
             _atomic_write_json(record_path, rec)
@@ -213,7 +405,6 @@ def attach_spatial_relational_state(record_path: str) -> Dict[str, Any]:
         except Exception:
             return {"record_path": record_path, "status": "error", "reason": "atomic_write_failed"}
 
-    # 4) Build + merge entity/relations/constraints (idempotent for 3d source)
     entity = _build_spatial_entity(record_id, measurement)
     entity_id = entity["id"]
 
@@ -232,7 +423,6 @@ def attach_spatial_relational_state(record_path: str) -> Dict[str, Any]:
     _remove_prior_3d_subject(constraints, entity_id)
     constraints.extend(_build_spatial_constraints(entity_id, measurement))
 
-    # 5) Atomic persist
     try:
         _atomic_write_json(record_path, rec)
     except Exception:
@@ -245,7 +435,6 @@ def objects_to_entities(
     objects: list[Raw3DObject],
     context_id: str,
 ) -> dict[str, RelationalEntity]:
-    """Map Raw3DObject items into RelationalEntity objects."""
     entities: dict[str, RelationalEntity] = {}
     for obj in objects:
         oid = obj.get("object_id")
@@ -268,7 +457,6 @@ def relations_to_links(
     relations: list[Raw3DRelation],
     context_id: str,
 ) -> dict[str, RelationalLink]:
-    """Map Raw3DRelation items into RelationalLink objects."""
     _ = context_id
     links: dict[str, RelationalLink] = {}
     for rel in relations:
@@ -291,7 +479,6 @@ def build_relational_state(
     context_id: str,
     context_metadata: dict[str, Any],
 ) -> RelationalState:
-    """Construct a full RelationalState from 3D inputs."""
     entities = objects_to_entities(objects, context_id)
     links = relations_to_links(relations, context_id)
     return {
@@ -310,7 +497,6 @@ def update_relational_state(
     context_id: str,
     context_metadata: dict[str, Any],
 ) -> RelationalState:
-    """Update an existing RelationalState with new 3D inputs."""
     prev_entities = state.get("entities") if isinstance(state, dict) else None
     prev_links = state.get("links") if isinstance(state, dict) else None
     prev_contexts = state.get("contexts") if isinstance(state, dict) else None
