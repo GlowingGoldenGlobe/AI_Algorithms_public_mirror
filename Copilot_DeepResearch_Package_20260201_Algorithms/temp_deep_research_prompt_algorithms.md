@@ -55,3 +55,27 @@ Date: 2026-02-01
 - Use path safety helpers (`sanitize_id`, `safe_join`, `resolve_path`).
 - Prefer deterministic libraries or configurable deterministic modes when suggesting new tooling.
 - Tailor instructions for Windows PowerShell environment.
+
+## Raw GitHub URLs for Attachments
+
+- README.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Algorithms/README.md
+- Docs/README.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Algorithms/Docs/README.md
+- Docs/DESIGN_GOALS.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Algorithms/Docs/DESIGN_GOALS.md
+- Modules/module_concept_measure.py — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Algorithms/Modules/module_concept_measure.py
+- Modules/module_integration.py — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Algorithms/Modules/module_integration.py
+- Modules/module_measure.py — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Algorithms/Modules/module_measure.py
+- Modules/module_metrics.py — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Algorithms/Modules/module_metrics.py
+- Modules/module_objectives.py — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Algorithms/Modules/module_objectives.py
+- Modules/module_provenance.py — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Algorithms/Modules/module_provenance.py
+- Modules/module_reasoning.py — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Algorithms/Modules/module_reasoning.py
+- Modules/module_scheduler.py — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Algorithms/Modules/module_scheduler.py
+- Modules/module_select.py — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Algorithms/Modules/module_select.py
+- Modules/module_toggle.py — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Algorithms/Modules/module_toggle.py
+- Modules/module_uncertainty.py — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Algorithms/Modules/module_uncertainty.py
+- Modules/module_want.py — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Algorithms/Modules/module_want.py
+- Results/RESULTS_PathSafety.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Algorithms/Results/RESULTS_PathSafety.md
+- Results/RESULTS_Phase11_EvidenceCapture.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Algorithms/Results/RESULTS_Phase11_EvidenceCapture.md
+- Results/RESULTS_Phase15_ReasonChains.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Algorithms/Results/RESULTS_Phase15_ReasonChains.md
+- Results/RESULTS_Phase16_ProceduralMemory.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Algorithms/Results/RESULTS_Phase16_ProceduralMemory.md
+- temp_deep_research_prompt_algorithms.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Algorithms/temp_deep_research_prompt_algorithms.md
+- temp_Feb2026_1.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Algorithms/temp_Feb2026_1.md

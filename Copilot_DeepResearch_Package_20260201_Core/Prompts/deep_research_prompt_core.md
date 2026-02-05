@@ -17,3 +17,30 @@
 - A short checklist for converting a flaky test into a deterministic one
 
 **Constraints:** Prefer authoritative sources (academic papers, engineering blogs from major AI infra teams, official pytest docs). Cite sources inline.
+
+## Raw GitHub URLs for Attachments
+
+- README.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Core/README.md
+- .github/PULL_REQUEST_TEMPLATE.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Core/.github/PULL_REQUEST_TEMPLATE.md
+- .vscode/tasks.json — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Core/.vscode/tasks.json
+- Config/config.json — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Core/Config/config.json
+- Config/orchestrator_config.json — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Core/Config/orchestrator_config.json
+- Config/orchestrator_config_assessment.json — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Core/Config/orchestrator_config_assessment.json
+- Docs/AGENT.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Core/Docs/AGENT.md
+- Docs/ASSESSMENT_PROCEDURE.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Core/Docs/ASSESSMENT_PROCEDURE.md
+- Docs/DESIGN_GOALS.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Core/Docs/DESIGN_GOALS.md
+- Docs/README.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Core/Docs/README.md
+- Modules/module_ai_brain_bridge.py — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Core/Modules/module_ai_brain_bridge.py
+- Modules/module_integration.py — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Core/Modules/module_integration.py
+- Modules/module_measure.py — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Core/Modules/module_measure.py
+- Modules/module_relational_adapter.py — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Core/Modules/module_relational_adapter.py
+- Prompts/deep_research_prompt_core.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Core/Prompts/deep_research_prompt_core.md
+- Scripts/agent_run.sh — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Core/Scripts/agent_run.sh
+- Scripts/hardware_limits_check.py — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Core/Scripts/hardware_limits_check.py
+- Scripts/ops_status_report.py — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Core/Scripts/ops_status_report.py
+- Scripts/run_eval.py — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Core/Scripts/run_eval.py
+- Telemetry/metrics.json — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Core/Telemetry/metrics.json
+- Telemetry/ops_status.json — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Core/Telemetry/ops_status.json
+- Tests/agent_integration_test.py — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Core/Tests/agent_integration_test.py
+- Tests/mocks/mock_ai_brain.py — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Core/Tests/mocks/mock_ai_brain.py
+- temp_Feb2026_1.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201_Core/temp_Feb2026_1.md

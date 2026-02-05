@@ -51,3 +51,19 @@ Date: 2026-02-01
 - Mention determinism requirements (fixed timestamp) and path safety APIs (`sanitize_id`, `safe_join`, `resolve_path`).
 - Request responses tailored to Windows PowerShell environment.
 - Ask for concrete next tasks ready to log into temp_Feb2026_1.md.
+
+## Raw GitHub URLs for Attachments
+
+- README.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201/README.md
+- AGENT_ASSESSMENT.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201/AGENT_ASSESSMENT.md
+- AGENT_ASSESSMENT_3D.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201/AGENT_ASSESSMENT_3D.md
+- module_ai_brain_bridge.py — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201/module_ai_brain_bridge.py
+- module_integration.py — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201/module_integration.py
+- module_relational_adapter.py — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201/module_relational_adapter.py
+- AI_Brain/ARCHITECTURE.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201/AI_Brain/ARCHITECTURE.md
+- AI_Brain/README.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201/AI_Brain/README.md
+- AI_Brain/NEXT_TASKS.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201/AI_Brain/NEXT_TASKS.md
+- Snapshots/metrics.json — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201/Snapshots/metrics.json
+- Snapshots/ops_status.json — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201/Snapshots/ops_status.json
+- temp_deep_research_prompt.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201/temp_deep_research_prompt.md
+- temp_Feb2026_1.md — https://raw.githubusercontent.com/GlowingGoldenGlobe/AI_Algorithms_public_mirror/refs/heads/main/Copilot_DeepResearch_Package_20260201/temp_Feb2026_1.md
