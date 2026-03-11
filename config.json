@@ -1,5 +1,8 @@
 {
   "determinism": {
+    "3d_fixed_timestamps": true,
+    "3d_noise_mode": "none",
+    "3d_seed": 42,
     "deterministic_mode": true,
     "fixed_timestamp": "2025-01-01T00:00:00Z"
   },

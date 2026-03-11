@@ -1,8 +1,18 @@
+import hashlib
 import os
 import json
+import time
 from datetime import datetime, timezone
-from typing import Any, Dict
-from module_tools import validate_record, validate_relational_state, sanitize_id, safe_join, _load_config
+from typing import Any, Dict, Optional
+from module_tools import (
+    validate_record,
+    validate_relational_state,
+    sanitize_id,
+    safe_join,
+    _load_config,
+    canonical_json_bytes,
+    _ts,
+)
 
 # Resolve workspace root dynamically from this file's location
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -28,19 +38,8 @@ def _ensure_relational_state(record: Dict[str, Any]) -> None:
 
 
 def _now_ts() -> str:
-    """Return a timestamp string.
-
-    - If deterministic mode is enabled, returns the configured fixed timestamp.
-    - Otherwise, returns a UTC Zulu timestamp.
-    """
-    try:
-        cfg = _load_config() or {}
-        det = cfg.get('determinism', {}) if isinstance(cfg, dict) else {}
-        if det.get('deterministic_mode') and det.get('fixed_timestamp'):
-            return str(det.get('fixed_timestamp'))
-    except Exception:
-        pass
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
+    """Return a timestamp string (deterministic when enabled)."""
+    return _ts()
 
 def resolve_path(category: str) -> str:
     """Map category to subdirectory under ROOT."""
@@ -67,16 +66,18 @@ def _backup_existing(file_path: str) -> None:
     os.makedirs(backup_dir, exist_ok=True)
     ts = None
     try:
-        cfg = _load_config() or {}
-        det = cfg.get('determinism', {}) if isinstance(cfg, dict) else {}
-        fixed = det.get('fixed_timestamp') if det.get('deterministic_mode') else None
-        if fixed:
-            dt = datetime.fromisoformat(str(fixed).replace('Z', '+00:00'))
-            ts = dt.astimezone(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+        ts_str = _now_ts()
+        parsed = None
+        try:
+            ts_norm = ts_str.replace('Z', '+00:00') if isinstance(ts_str, str) else ''
+            parsed = datetime.fromisoformat(ts_norm) if ts_norm else None
+        except Exception:
+            parsed = None
+        if parsed is None:
+            parsed = datetime.fromtimestamp(time.time(), timezone.utc)
+        ts = parsed.astimezone(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     except Exception:
-        ts = None
-    if not ts:
-        ts = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+        ts = datetime.fromtimestamp(time.time(), timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     name = os.path.basename(file_path)
     backup_name = f"{name}.{ts}.bak"
     backup_path = os.path.join(backup_dir, backup_name)
@@ -273,3 +274,82 @@ def save_provenance_log(log: list[dict[str, Any]]) -> None:
     with open(tmp_path, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
     os.replace(tmp_path, path)
+
+
+def _provenance_artifacts_root() -> str:
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    artifacts_dir = safe_join(base_dir, os.path.join('LongTermStore', 'Provenance', 'Artifacts'))
+    os.makedirs(artifacts_dir, exist_ok=True)
+    return artifacts_dir
+
+
+def _sanitize_for_artifact(component: Optional[str], *, fallback: str) -> str:
+    candidate = str(component) if isinstance(component, str) and component else fallback
+    try:
+        return sanitize_id(candidate)
+    except Exception:
+        digest = hashlib.sha256(candidate.encode('utf-8')).hexdigest()[:24]
+        return sanitize_id(digest)
+
+
+def _cleanup_empty_dirs(start_dir: str, root_stop: str) -> None:
+    current = os.path.abspath(start_dir)
+    stop = os.path.abspath(root_stop)
+    while current.startswith(stop):
+        if current == stop:
+            break
+        try:
+            os.rmdir(current)
+        except OSError:
+            break
+        current = os.path.dirname(current)
+
+
+def write_provenance_artifact(
+    *,
+    target_id: str,
+    artifact_name: str,
+    payload: Optional[Any],
+    tick_id: Optional[str] = None,
+) -> Optional[str]:
+    """Persist or remove a canonical provenance artifact.
+
+    - Canonical location: LongTermStore/Provenance/Artifacts/<target>/<tick>/<artifact>.json
+    - Uses canonical_json_bytes for deterministic serialization when payload provided.
+    - Removes the artifact file (and prunes empty directories) when payload is None.
+    """
+
+    try:
+        artifacts_root = _provenance_artifacts_root()
+        safe_target = _sanitize_for_artifact(target_id, fallback='unknown')
+        safe_tick = _sanitize_for_artifact(tick_id, fallback=safe_target) if tick_id else safe_target
+        safe_artifact = _sanitize_for_artifact(artifact_name, fallback='artifact')
+        target_dir = safe_join(artifacts_root, os.path.join(safe_target, safe_tick))
+        file_path = safe_join(target_dir, f"{safe_artifact}.json")
+
+        if payload is None:
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                except OSError:
+                    return None
+            _cleanup_empty_dirs(target_dir, artifacts_root)
+            return None
+
+        os.makedirs(target_dir, exist_ok=True)
+
+        serialized = canonical_json_bytes(payload)
+        try:
+            with open(file_path, 'rb') as existing:
+                if existing.read() == serialized:
+                    return file_path
+        except FileNotFoundError:
+            pass
+
+        tmp_path = file_path + '.tmp'
+        with open(tmp_path, 'wb') as fh:
+            fh.write(serialized)
+        os.replace(tmp_path, file_path)
+        return file_path
+    except Exception:
+        return None

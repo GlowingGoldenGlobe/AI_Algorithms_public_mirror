@@ -40,6 +40,24 @@ def _load_config():
         _CONFIG_CACHE = {}
     return _CONFIG_CACHE
 
+def _canonicalize_for_json(value):
+    """Recursively normalize values so json.dumps(sort_keys=True) stays deterministic."""
+    if isinstance(value, dict):
+        return {str(k): _canonicalize_for_json(value[k]) for k in sorted(value.keys(), key=lambda x: str(x))}
+    if isinstance(value, (list, tuple)):
+        return [_canonicalize_for_json(v) for v in value]
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    try:
+        return _json.loads(_json.dumps(value, ensure_ascii=False, sort_keys=True))
+    except Exception:
+        return str(value)
+
+def canonical_json_bytes(value) -> bytes:
+    """Serialize value into canonical UTF-8 JSON bytes for deterministic hashing."""
+    normalized = _canonicalize_for_json(value)
+    return _json.dumps(normalized, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
 def search_internet(query, top=5):
     """
     Internet search using available providers (pref: SerpAPI, then Bing Web Search).
@@ -563,7 +581,15 @@ def validate_relational_state(relational_state: Dict[str, Any]) -> bool:
         if k not in relational_state:
             return False
 
-    allowed = set(required) | {'focus_snapshot', 'conceptual_measurement'}
+    allowed = set(required) | {
+        'focus_snapshot',
+        'conceptual_measurement',
+        'description',
+        'derived',
+        'metrics',
+        'metrics_definitions',
+        'bridge_outputs',
+    }
     for k in relational_state.keys():
         if k not in allowed:
             return False
@@ -584,6 +610,28 @@ def validate_relational_state(relational_state: Dict[str, Any]) -> bool:
     fs = relational_state.get('focus_snapshot')
     if fs is not None and not isinstance(fs, dict):
         return False
+    cm = relational_state.get('conceptual_measurement')
+    if cm is not None and not isinstance(cm, dict):
+        return False
+    desc = relational_state.get('description')
+    if desc is not None:
+        if not isinstance(desc, dict):
+            return False
+        for key in ('entities', 'claims', 'constraints', 'questions', 'action_candidates'):
+            if key in desc and not isinstance(desc.get(key), list):
+                return False
+    derived = relational_state.get('derived')
+    if derived is not None and not isinstance(derived, dict):
+        return False
+    metrics = relational_state.get('metrics')
+    if metrics is not None and not isinstance(metrics, dict):
+        return False
+    metrics_defs = relational_state.get('metrics_definitions')
+    if metrics_defs is not None and not isinstance(metrics_defs, list):
+        return False
+    bridge_outputs = relational_state.get('bridge_outputs')
+    if bridge_outputs is not None and not isinstance(bridge_outputs, list):
+        return False
 
     # Minimal row-level checks (do not enforce full shapes).
     for e in relational_state.get('entities') or []:
@@ -597,8 +645,10 @@ def validate_relational_state(relational_state: Dict[str, Any]) -> bool:
     for r in relational_state.get('relations') or []:
         if not isinstance(r, dict):
             return False
-        if not isinstance(r.get('subj'), str) or not isinstance(r.get('pred'), str) or not isinstance(r.get('obj'), str):
-            return False
+        for key in ('subj', 'pred', 'obj'):
+            val = r.get(key)
+            if not isinstance(val, str) or not val:
+                return False
 
     for c in relational_state.get('constraints') or []:
         if not isinstance(c, dict):
@@ -641,7 +691,15 @@ def safe_join(root: str, relpath: str) -> str:
 
 def _ts() -> str:
     import datetime
-    return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z')
+    import time as _time
+    try:
+        cfg = _load_config() or {}
+        det = cfg.get('determinism', {}) if isinstance(cfg, dict) else {}
+        if det.get('deterministic_mode') and det.get('fixed_timestamp'):
+            return str(det.get('fixed_timestamp'))
+    except Exception:
+        pass
+    return datetime.datetime.fromtimestamp(_time.time(), datetime.timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z')
 
 def build_semantic_index(root: Optional[str] = None) -> Dict[str, Any]:
     base = root or os.path.dirname(os.path.abspath(__file__))

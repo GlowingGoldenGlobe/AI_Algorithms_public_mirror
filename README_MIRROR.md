@@ -52,6 +52,6 @@ python run_eval.py
 If present (profile `core_thinking`), start with:
 
 - `roadmap_table_2.md` (assessment-oriented progression)
-- `temp_12.md` (change log; what passed eval)
+- `temp_Feb2026_1.md` (current monthly log; `temp_12.md` is legacy)
 
 See `PUBLISHING.md` for how to publish this folder as a public repo.
