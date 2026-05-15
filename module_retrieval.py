@@ -28,6 +28,8 @@ class Record(TypedDict, total=False):
     objective_links: dict[str, float]
     conceptual_vector: list[float]
     constraints: dict[str, Any]
+    scene_summary_profile: dict[str, Any]
+    reference_label_profile: dict[str, Any]
 
 
 class RetrievalQuery(TypedDict, total=False):
@@ -35,6 +37,8 @@ class RetrievalQuery(TypedDict, total=False):
     objective_id: Optional[str]
     conceptual_vector: Optional[list[float]]
     required_context: Optional[str]
+    reference_labels: Optional[list[str]]
+    comparison_axes: Optional[list[str]]
     max_results: int
     diversity_k: int
     deterministic_mode: bool
@@ -47,6 +51,18 @@ class RetrievalScore(TypedDict):
     components: dict[str, float]
     score_distribution: list[float]
     explain_vector: dict[str, float]
+
+
+RETRIEVAL_COMPONENT_POLICY_DEFAULT_WEIGHTS: dict[str, float] = {
+    'measurement': 0.25,
+    'objective': 0.25,
+    'recurrence': 0.15,
+    'conceptual': 0.25,
+    'constraint': 0.10,
+    'categorized_context': 0.10,
+    'scene_summary': 0.10,
+    'reference_label': 0.10,
+}
 
 
 def stable_seed(obj: Any) -> int:
@@ -159,6 +175,8 @@ def compute_components_td(
 
     fn_con = constraint_evaluator or measure_constraint_satisfaction
     s_q = _clamp01(float(fn_con(record, query)))
+    s_l = measure_reference_label_support(record, query)
+    s_ctx = measure_categorized_context_support(record, query)
 
     u = _get_uncertainty_penalty(record)
     return {
@@ -166,6 +184,8 @@ def compute_components_td(
         'objective': float(s_o),
         'recurrence': float(s_r),
         'constraint': float(s_q),
+        'reference_label': float(s_l),
+        'categorized_context': float(s_ctx),
         'uncertainty': float(u),
     }
 
@@ -173,10 +193,12 @@ def compute_components_td(
 def compute_score_td(*, components: dict[str, float], weights: Optional[dict[str, float]] = None) -> float:
     """Weighted score with uncertainty penalty."""
     w = weights or {
-        'conceptual': 0.40,
-        'objective': 0.30,
-        'recurrence': 0.20,
+        'conceptual': 0.30,
+        'objective': 0.25,
+        'recurrence': 0.15,
         'constraint': 0.10,
+        'reference_label': 0.10,
+        'categorized_context': 0.10,
         'uncertainty': 0.20,
     }
     return float(
@@ -184,6 +206,8 @@ def compute_score_td(*, components: dict[str, float], weights: Optional[dict[str
         + float(w.get('objective', 0.0)) * float(components.get('objective', 0.0))
         + float(w.get('recurrence', 0.0)) * float(components.get('recurrence', 0.0))
         + float(w.get('constraint', 0.0)) * float(components.get('constraint', 0.0))
+        + float(w.get('reference_label', 0.0)) * float(components.get('reference_label', 0.0))
+        + float(w.get('categorized_context', 0.0)) * float(components.get('categorized_context', 0.0))
         - float(w.get('uncertainty', 0.0)) * float(components.get('uncertainty', 0.0))
     )
 
@@ -236,6 +260,8 @@ def _explain_vector(*, components: dict[str, float], weights: dict[str, float]) 
         'objective': float(weights.get('objective', 0.0)) * float(components.get('objective', 0.0)),
         'recurrence': float(weights.get('recurrence', 0.0)) * float(components.get('recurrence', 0.0)),
         'constraint': float(weights.get('constraint', 0.0)) * float(components.get('constraint', 0.0)),
+        'reference_label': float(weights.get('reference_label', 0.0)) * float(components.get('reference_label', 0.0)),
+        'categorized_context': float(weights.get('categorized_context', 0.0)) * float(components.get('categorized_context', 0.0)),
         'uncertainty_penalty': -float(weights.get('uncertainty', 0.0)) * float(components.get('uncertainty', 0.0)),
     }
 
@@ -294,10 +320,12 @@ def rank_records_td(
 ) -> list[RetrievalScore]:
     """Think Deeper retrieval: returns scored rows (not raw records)."""
     w = weights or {
-        'conceptual': 0.40,
-        'objective': 0.30,
-        'recurrence': 0.20,
+        'conceptual': 0.30,
+        'objective': 0.25,
+        'recurrence': 0.15,
         'constraint': 0.10,
+        'reference_label': 0.10,
+        'categorized_context': 0.10,
         'uncertainty': 0.20,
     }
 
@@ -365,6 +393,558 @@ def measure_constraint_satisfaction(record: Record, query: RetrievalQuery) -> fl
     return 1.0 if (isinstance(ctx, str) and ctx == req) else 0.0
 
 
+def _normalize_reference_terms(value: Any) -> list[str]:
+    if isinstance(value, str):
+        items = [value]
+    elif isinstance(value, list):
+        items = [item for item in value if isinstance(item, str)]
+    else:
+        return []
+
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for item in items:
+        text = " ".join(str(item).strip().lower().replace('_', ' ').replace('-', ' ').split())
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        normalized.append(text)
+    return normalized
+
+
+def _merge_reference_terms(target: list[str], *values: Any) -> list[str]:
+    seen = set(target)
+    for value in values:
+        for term in _normalize_reference_terms(value):
+            if term in seen:
+                continue
+            seen.add(term)
+            target.append(term)
+    return target
+
+
+def _normalize_reference_mapping_values(value: Any) -> list[str]:
+    if not isinstance(value, dict):
+        return []
+
+    normalized: list[str] = []
+    for key in sorted(value.keys()):
+        _merge_reference_terms(normalized, value.get(key))
+    return normalized
+
+
+def _normalize_structured_comparison_axes(value: Any) -> list[str]:
+    if isinstance(value, dict):
+        items = [value]
+    elif isinstance(value, list):
+        normalized = _normalize_reference_terms([item for item in value if isinstance(item, str)])
+        items = [item for item in value if isinstance(item, dict)]
+    else:
+        return _normalize_reference_terms(value)
+
+    if not isinstance(value, list):
+        normalized = []
+    for item in items:
+        _merge_reference_terms(
+            normalized,
+            item.get('axis'),
+            item.get('value'),
+            item.get('label'),
+            item.get('name'),
+        )
+    return normalized
+
+
+def _categorized_context_summary_from_value(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+
+    direct = value.get('categorized_context_summary')
+    if isinstance(direct, dict):
+        return direct
+
+    rs = value.get('relational_state') if isinstance(value.get('relational_state'), dict) else None
+    derived = rs.get('derived') if isinstance(rs, dict) and isinstance(rs.get('derived'), dict) else None
+    nested = derived.get('categorized_context_summary') if isinstance(derived, dict) else None
+    if isinstance(nested, dict):
+        return nested
+
+    nested_value = value.get('value')
+    if isinstance(nested_value, dict) and nested_value is not value:
+        return _categorized_context_summary_from_value(nested_value)
+    return {}
+
+
+def _scene_relation_families_from_value(value: Any) -> list[str]:
+    if not isinstance(value, dict):
+        return []
+    rs = value.get('relational_state') if isinstance(value.get('relational_state'), dict) else None
+    if not isinstance(rs, dict):
+        return []
+
+    families: list[str] = []
+    seen: set[str] = set()
+
+    relations = rs.get('relations')
+    if isinstance(relations, list):
+        for row in relations:
+            if not isinstance(row, dict) or row.get('source') != '3d_scene_summary':
+                continue
+            pred = row.get('pred') if isinstance(row.get('pred'), str) else None
+            for term in _normalize_reference_terms(pred):
+                if term not in seen:
+                    seen.add(term)
+                    families.append(term)
+
+    constraints = rs.get('constraints')
+    if isinstance(constraints, list):
+        for row in constraints:
+            if not isinstance(row, dict) or row.get('source') != '3d_scene_summary':
+                continue
+            constraint_type = row.get('type') if isinstance(row.get('type'), str) else None
+            for term in _normalize_reference_terms(constraint_type):
+                if term not in seen:
+                    seen.add(term)
+                    families.append(term)
+
+    return families
+
+
+def _reference_label_profile_from_value(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+
+    labels: list[str] = []
+    _merge_reference_terms(labels, value.get('label'), value.get('labels'))
+    _merge_reference_terms(labels, _normalize_reference_mapping_values(value.get('labels')))
+
+    object_hints = value.get('object_hints')
+    if isinstance(object_hints, list):
+        for item in object_hints:
+            if not isinstance(item, dict):
+                continue
+            _merge_reference_terms(labels, item.get('label'))
+
+    aliases: list[str] = []
+    _merge_reference_terms(aliases, value.get('aliases'))
+
+    comparison_axes: list[str] = []
+    _merge_reference_terms(comparison_axes, _normalize_structured_comparison_axes(value.get('comparison_axes')))
+    for extra_axes in ('comparison_focus', 'topics', 'scope_tags', 'tags'):
+        _merge_reference_terms(comparison_axes, value.get(extra_axes))
+
+    categorized_summary = _categorized_context_summary_from_value(value)
+    if categorized_summary:
+        _merge_reference_terms(labels, categorized_summary.get('labels'))
+        _merge_reference_terms(aliases, categorized_summary.get('aliases'))
+        _merge_reference_terms(comparison_axes, categorized_summary.get('comparison_axes'))
+
+    if not (labels or aliases or comparison_axes):
+        return {}
+
+    return {
+        'id': str(value.get('id') or ''),
+        'labels': labels,
+        'aliases': aliases,
+        'comparison_axes': comparison_axes,
+    }
+
+
+def build_categorized_context_profile(record_or_value: Any) -> dict[str, Any]:
+    record = record_or_value if isinstance(record_or_value, dict) else {}
+    value = record.get('value') if isinstance(record.get('value'), dict) else record_or_value
+
+    reference_profile = record.get('reference_label_profile') if isinstance(record.get('reference_label_profile'), dict) else None
+    if not isinstance(reference_profile, dict) or not reference_profile:
+        reference_profile = _reference_label_profile_from_value(value)
+
+    scene_profile = record.get('scene_summary_profile') if isinstance(record.get('scene_summary_profile'), dict) else None
+    if not isinstance(scene_profile, dict) or not scene_profile:
+        scene_profile = _scene_summary_profile_from_value(value)
+
+    relation_families = _scene_relation_families_from_value(value)
+    categorized_summary = _categorized_context_summary_from_value(record) or _categorized_context_summary_from_value(value)
+    source_kinds: list[str] = []
+    if reference_profile:
+        source_kinds.append('reference_label_profile')
+    if scene_profile:
+        source_kinds.append('scene_summary_profile')
+    if categorized_summary:
+        source_kinds.append('categorized_context_summary')
+
+    return {
+        'id': str((reference_profile or {}).get('id') or record.get('record_id') or ''),
+        'labels': list((reference_profile or {}).get('labels') or []),
+        'aliases': list((reference_profile or {}).get('aliases') or []),
+        'comparison_axes': list((reference_profile or {}).get('comparison_axes') or []),
+        'relation_families': relation_families,
+        'source_kinds': source_kinds,
+    }
+
+
+def summarize_categorized_context_join_quality(
+    categorized_summary: Any,
+    reference_profile: Any,
+) -> dict[str, Any]:
+    semantic_summary = categorized_summary if isinstance(categorized_summary, dict) else {}
+    reference = reference_profile if isinstance(reference_profile, dict) else {}
+
+    semantic_labels = set(_normalize_reference_terms(semantic_summary.get('labels')))
+    semantic_aliases = set(_normalize_reference_terms(semantic_summary.get('aliases')))
+    semantic_axes = set(_normalize_reference_terms(semantic_summary.get('comparison_axes')))
+    reference_labels = set(_normalize_reference_terms(reference.get('labels')))
+    reference_aliases = set(_normalize_reference_terms(reference.get('aliases')))
+    reference_axes = set(_normalize_reference_terms(reference.get('comparison_axes')))
+
+    reference_present = bool(reference_labels or reference_aliases or reference_axes)
+    support_level = str(semantic_summary.get('support_level') or semantic_summary.get('level') or 'missing').lower()
+    relation_families = set(_normalize_reference_terms(semantic_summary.get('relation_families')))
+    bridge_sources = set(_normalize_reference_terms(semantic_summary.get('bridge_sources')))
+    semantic_present = bool(
+        semantic_labels
+        or semantic_aliases
+        or semantic_axes
+        or relation_families
+        or bridge_sources
+        or bool(semantic_summary.get('scene_summary_present'))
+        or support_level != 'missing'
+    )
+
+    matched_reference_labels = sorted((semantic_labels | semantic_aliases).intersection(reference_labels))
+    matched_reference_aliases = sorted((semantic_labels | semantic_aliases).intersection(reference_aliases))
+    matched_reference_axes = sorted(semantic_axes.intersection(reference_axes))
+    matched_category_count = sum(
+        1 for values in (matched_reference_labels, matched_reference_aliases, matched_reference_axes) if values
+    )
+    matched_term_count = (
+        len(matched_reference_labels)
+        + len(matched_reference_aliases)
+        + len(matched_reference_axes)
+    )
+
+    if reference_present and support_level == 'strong':
+        join_status = 'aligned'
+    elif reference_present and support_level == 'weak':
+        join_status = 'reference_backed_semantic_weak'
+    elif reference_present:
+        join_status = 'reference_only'
+    elif support_level != 'missing' or semantic_present:
+        join_status = 'semantic_only'
+    else:
+        join_status = 'missing'
+
+    if join_status == 'aligned':
+        join_quality = 'strong'
+    elif join_status in {'reference_backed_semantic_weak', 'semantic_only'}:
+        join_quality = 'partial'
+    elif join_status == 'reference_only':
+        join_quality = 'weak'
+    else:
+        join_quality = 'missing'
+
+    if semantic_present:
+        persistence_status = 'persisted'
+    elif reference_present:
+        persistence_status = 'reference_only'
+    else:
+        persistence_status = 'missing'
+
+    if join_quality == 'strong':
+        follow_through_status = 'ready'
+    elif join_quality in {'partial', 'weak'}:
+        follow_through_status = 'monitor'
+    else:
+        follow_through_status = 'missing'
+
+    gap_reasons: list[str] = []
+    if not semantic_present:
+        gap_reasons.append('categorized_context_not_persisted')
+    if reference_present and matched_term_count <= 0 and join_status in {'reference_only', 'missing'}:
+        gap_reasons.append('reference_join_overlap_missing')
+    if join_status == 'reference_backed_semantic_weak':
+        gap_reasons.append('categorized_context_support_weak')
+
+    return {
+        'join_status': join_status,
+        'join_quality': join_quality,
+        'persistence_status': persistence_status,
+        'follow_through_status': follow_through_status,
+        'reference_profile_present': reference_present,
+        'matched_reference_labels': matched_reference_labels,
+        'matched_reference_aliases': matched_reference_aliases,
+        'matched_reference_comparison_axes': matched_reference_axes,
+        'matched_reference_category_count': matched_category_count,
+        'matched_reference_term_count': matched_term_count,
+        'gap_reasons': gap_reasons,
+    }
+
+
+def summarize_categorized_context_coverage(record: Record, query: RetrievalQuery) -> dict[str, Any]:
+    profile = build_categorized_context_profile(record)
+    query_labels = _normalize_reference_terms(query.get('reference_labels'))
+    query_axes = _normalize_reference_terms(query.get('comparison_axes'))
+
+    label_set = set(_normalize_reference_terms(profile.get('labels')))
+    alias_set = set(_normalize_reference_terms(profile.get('aliases')))
+    axis_set = set(_normalize_reference_terms(profile.get('comparison_axes')))
+    relation_family_set = set(_normalize_reference_terms(profile.get('relation_families')))
+
+    used_labels = sorted(label_set.intersection(query_labels))
+    used_aliases = sorted(alias_set.intersection(query_labels))
+    used_axes = sorted(axis_set.intersection(query_axes))
+
+    reference_support = measure_reference_label_support(record, query)
+    scene_support = measure_scene_summary_support(
+        record,
+        query,
+        measurement=_measurement_target_match(record, query),
+        objective=measure_objective_relevance(record, query.get('objective_id')),
+        conceptual=(measure_similarity(record.get('conceptual_vector'), query.get('conceptual_vector')) if (isinstance(record.get('conceptual_vector'), list) and isinstance(query.get('conceptual_vector'), list)) else 0.0),
+        constraint=measure_constraint_satisfaction(record, query),
+    )
+    used_relation_families = sorted(relation_family_set) if scene_support > 0.0 else []
+
+    used_categories = sum(
+        1 for values in (used_labels, used_aliases, used_axes, used_relation_families) if values
+    )
+    available_categories = sum(
+        1 for values in (label_set, alias_set, axis_set, relation_family_set) if values
+    )
+
+    if used_categories >= 2 or (reference_support > 0.75 and used_categories >= 1) or scene_support > 0.75:
+        level = 'strong'
+    else:
+        level = 'weak'
+
+    return {
+        'level': level,
+        'available': {
+            'labels': sorted(label_set),
+            'aliases': sorted(alias_set),
+            'comparison_axes': sorted(axis_set),
+            'relation_families': sorted(relation_family_set),
+        },
+        'used': {
+            'labels': used_labels,
+            'aliases': used_aliases,
+            'comparison_axes': used_axes,
+            'relation_families': used_relation_families,
+        },
+        'counts': {
+            'available_categories': available_categories,
+            'used_categories': used_categories,
+        },
+        'support': {
+            'reference_label': float(reference_support),
+            'scene_summary': float(scene_support),
+        },
+        'source_kinds': list(profile.get('source_kinds') or []),
+    }
+
+
+def summarize_reference_use(record: Record, query: RetrievalQuery) -> dict[str, Any]:
+    coverage = summarize_categorized_context_coverage(record, query)
+    used = coverage.get('used') if isinstance(coverage.get('used'), dict) else {}
+    counts = coverage.get('counts') if isinstance(coverage.get('counts'), dict) else {}
+
+    label_match_count = len([item for item in (used.get('labels') or []) if isinstance(item, str)])
+    alias_match_count = len([item for item in (used.get('aliases') or []) if isinstance(item, str)])
+    comparison_axis_match_count = len(
+        [item for item in (used.get('comparison_axes') or []) if isinstance(item, str)]
+    )
+    relation_family_match_count = len(
+        [item for item in (used.get('relation_families') or []) if isinstance(item, str)]
+    )
+    used_category_count = 0
+    for values in (
+        used.get('labels'),
+        used.get('aliases'),
+        used.get('comparison_axes'),
+        used.get('relation_families'),
+    ):
+        if isinstance(values, list) and any(isinstance(item, str) for item in values):
+            used_category_count += 1
+
+    reference_use_score = float(measure_reference_label_support(record, query))
+    available_category_count = 0
+    try:
+        available_category_count = int(counts.get('available_categories') or 0)
+    except Exception:
+        available_category_count = 0
+
+    if reference_use_score >= 0.75 and used_category_count >= 2:
+        utilization_state = 'strong'
+        summary = 'reference-use evidence strongly overlaps retained categorized context'
+    elif reference_use_score > 0.0 or used_category_count > 0:
+        utilization_state = 'partial'
+        summary = 'reference-use evidence partially overlaps retained categorized context'
+    elif query.get('reference_labels') or query.get('comparison_axes'):
+        utilization_state = 'weak'
+        summary = 'reference-use evidence is requested but not supported by retained categorized context'
+    else:
+        utilization_state = 'missing'
+        summary = 'reference-use evidence was not requested for the current retained context'
+
+    return {
+        'utilization_state': utilization_state,
+        'reference_use_score': reference_use_score,
+        'reference_use_breakdown': {
+            'label_match_count': label_match_count,
+            'alias_match_count': alias_match_count,
+            'comparison_axis_match_count': comparison_axis_match_count,
+        },
+        'relation_family_match_count': relation_family_match_count,
+        'used_category_count': used_category_count,
+        'available_category_count': available_category_count,
+        'coverage_level': str(coverage.get('level') or 'missing'),
+        'support': dict(coverage.get('support') or {}),
+        'source_kinds': list(coverage.get('source_kinds') or []),
+        'summary': summary,
+    }
+
+
+def measure_categorized_context_support(record: Record, query: RetrievalQuery) -> float:
+    summary = summarize_categorized_context_coverage(record, query)
+    counts = summary.get('counts') if isinstance(summary.get('counts'), dict) else {}
+    try:
+        available_categories = int(counts.get('available_categories') or 0)
+    except Exception:
+        available_categories = 0
+    try:
+        used_categories = int(counts.get('used_categories') or 0)
+    except Exception:
+        used_categories = 0
+    if available_categories <= 0 or used_categories <= 0:
+        return 0.0
+
+    coverage_ratio = min(float(used_categories) / float(available_categories), 1.0)
+    level = str(summary.get('level') or 'missing').lower()
+    if level == 'strong':
+        level_factor = 1.0
+    elif level == 'weak':
+        level_factor = 0.5
+    else:
+        level_factor = 0.0
+    return _clamp01(float(coverage_ratio) * float(level_factor))
+
+
+def measure_reference_label_support(record: Record, query: RetrievalQuery) -> float:
+    profile = record.get('reference_label_profile')
+    if not isinstance(profile, dict) or not profile:
+        profile = _reference_label_profile_from_value(record.get('value'))
+    if not isinstance(profile, dict) or not profile:
+        return 0.0
+
+    query_labels = _normalize_reference_terms(query.get('reference_labels'))
+    query_axes = _normalize_reference_terms(query.get('comparison_axes'))
+    if not query_labels and not query_axes:
+        return 0.0
+
+    active_scores: list[float] = []
+    if query_labels:
+        profile_labels = set(_normalize_reference_terms(profile.get('labels')) + _normalize_reference_terms(profile.get('aliases')))
+        active_scores.append((len(profile_labels.intersection(query_labels)) / float(len(query_labels))) if profile_labels else 0.0)
+    if query_axes:
+        profile_axes = set(_normalize_reference_terms(profile.get('comparison_axes')))
+        active_scores.append((len(profile_axes.intersection(query_axes)) / float(len(query_axes))) if profile_axes else 0.0)
+    return _clamp01((sum(active_scores) / float(len(active_scores))) if active_scores else 0.0)
+
+
+def _scene_summary_profile_from_value(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    rs = value.get('relational_state') if isinstance(value.get('relational_state'), dict) else None
+    if not isinstance(rs, dict):
+        return {}
+
+    def _rows(key: str) -> list[dict[str, Any]]:
+        items = rs.get(key)
+        if not isinstance(items, list):
+            return []
+        return [item for item in items if isinstance(item, dict) and item.get('source') == '3d_scene_summary']
+
+    entities = _rows('entities')
+    relations = _rows('relations')
+    constraints = _rows('constraints')
+    validation_rows = [
+        row for row in constraints
+        if row.get('type') == 'scene_validation'
+    ]
+    if not (entities or relations or constraints):
+        return {}
+
+    validation_quality = 0.0
+    if validation_rows:
+        scored = []
+        for row in validation_rows:
+            status = str(row.get('status') or '').lower()
+            if status == 'pass':
+                scored.append(1.0)
+            elif status == 'warn':
+                scored.append(0.5)
+            else:
+                scored.append(0.0)
+        validation_quality = sum(scored) / float(len(scored)) if scored else 0.0
+
+    evidence_strength = _clamp01(
+        0.35 * min(len(entities), 5) / 5.0
+        + 0.20 * min(len(relations), 3) / 3.0
+        + 0.25 * min(len(constraints), 4) / 4.0
+        + 0.20 * validation_quality
+    )
+
+    check_names = []
+    for row in validation_rows:
+        args = row.get('args') if isinstance(row.get('args'), dict) else {}
+        check_name = args.get('check_name') if isinstance(args.get('check_name'), str) else None
+        if check_name:
+            check_names.append(check_name)
+    check_names = sorted(set(check_names))
+
+    return {
+        'entity_count': len(entities),
+        'relation_count': len(relations),
+        'constraint_count': len(constraints),
+        'validation_count': len(validation_rows),
+        'validation_quality': float(validation_quality),
+        'evidence_strength': float(evidence_strength),
+        'check_names': check_names,
+        'relation_families': _scene_relation_families_from_value(value),
+    }
+
+
+def measure_scene_summary_support(
+    record: Record,
+    query: RetrievalQuery,
+    *,
+    measurement: float,
+    objective: float,
+    conceptual: float,
+    constraint: float,
+) -> float:
+    profile = record.get('scene_summary_profile')
+    if not isinstance(profile, dict) or not profile:
+        profile = _scene_summary_profile_from_value(record.get('value'))
+    if not isinstance(profile, dict) or not profile:
+        return 0.0
+
+    try:
+        evidence_strength = float(profile.get('evidence_strength') or 0.0)
+    except Exception:
+        evidence_strength = 0.0
+    try:
+        validation_quality = float(profile.get('validation_quality') or 0.0)
+    except Exception:
+        validation_quality = 0.0
+
+    query_strength = max(float(measurement), float(objective), float(conceptual), float(constraint))
+    if query_strength <= 0.0:
+        return 0.0
+
+    support = (0.7 * evidence_strength + 0.3 * validation_quality) * query_strength
+    return _clamp01(float(support))
+
+
 def _measurement_target_match(record: Record, query: RetrievalQuery) -> float:
     targets = query.get('target_ids')
     if not isinstance(targets, list) or not targets:
@@ -390,6 +970,16 @@ def compute_retrieval_score(record: Record, query: RetrievalQuery) -> RetrievalS
     conceptual = measure_similarity(rv, qv) if (isinstance(rv, list) and isinstance(qv, list)) else 0.0
 
     constraint = measure_constraint_satisfaction(record, query)
+    reference_label = measure_reference_label_support(record, query)
+    categorized_context = measure_categorized_context_support(record, query)
+    scene_summary = measure_scene_summary_support(
+        record,
+        query,
+        measurement=measurement,
+        objective=objective,
+        conceptual=conceptual,
+        constraint=constraint,
+    )
 
     # Deterministic weights (sum to 1.0).
     w = {
@@ -406,18 +996,74 @@ def compute_retrieval_score(record: Record, query: RetrievalQuery) -> RetrievalS
         + w['conceptual'] * conceptual
         + w['constraint'] * constraint
     )
+    if reference_label > 0.0:
+        score = _clamp01(float(score) + (0.10 * float(reference_label)))
+    if categorized_context > 0.0:
+        score = _clamp01(float(score) + (0.10 * float(categorized_context)))
+    if scene_summary > 0.0:
+        score = _clamp01(float(score) + (0.10 * float(scene_summary)))
+
+    components = {
+        'measurement': float(measurement),
+        'objective': float(objective),
+        'recurrence': float(recurrence),
+        'conceptual': float(conceptual),
+        'constraint': float(constraint),
+    }
+    if reference_label > 0.0:
+        components['reference_label'] = float(reference_label)
+    if categorized_context > 0.0:
+        components['categorized_context'] = float(categorized_context)
+    if scene_summary > 0.0:
+        components['scene_summary'] = float(scene_summary)
 
     return {
         'record_id': rid,
         'score': float(score),
-        'components': {
-            'measurement': float(measurement),
-            'objective': float(objective),
-            'recurrence': float(recurrence),
-            'conceptual': float(conceptual),
-            'constraint': float(constraint),
-        },
+        'components': components,
     }
+
+
+def compute_retrieval_component_score(
+    components: dict[str, Any],
+    weights: Optional[dict[str, float]] = None,
+) -> float:
+    if not isinstance(components, dict) or not components:
+        return 0.0
+
+    if not isinstance(weights, dict):
+        values = []
+        for value in components.values():
+            try:
+                values.append(float(value))
+            except Exception:
+                continue
+        return _clamp01((sum(values) / float(len(values))) if values else 0.0)
+
+    comp_score = 0.0
+    total = 0.0
+    for key, value in components.items():
+        try:
+            component_value = float(value)
+        except Exception:
+            continue
+
+        raw_weight = weights.get(str(key))
+        if raw_weight is None:
+            raw_weight = RETRIEVAL_COMPONENT_POLICY_DEFAULT_WEIGHTS.get(str(key))
+        try:
+            weight_value = float(raw_weight)
+        except Exception:
+            continue
+        if weight_value == 0.0:
+            continue
+
+        comp_score += (weight_value * component_value)
+        total += abs(weight_value)
+
+    if total <= 0.0:
+        return 0.0
+    return _clamp01(float(comp_score) / float(total))
 
 
 def rank_records(scores: list[RetrievalScore]) -> list[RetrievalScore]:
@@ -525,7 +1171,10 @@ def _record_from_semantic_json(path: str) -> Optional[Record]:
             if mx > 0:
                 vec = [float(v) / float(mx) for _, v in items[:32]]
 
-    return {
+    scene_summary_profile = _scene_summary_profile_from_value(rec)
+    reference_label_profile = _reference_label_profile_from_value(rec)
+
+    out: Record = {
         'record_id': rid,
         'value': rec,
         'context_id': str(rec.get('category') or 'semantic'),
@@ -534,6 +1183,11 @@ def _record_from_semantic_json(path: str) -> Optional[Record]:
         'conceptual_vector': vec,
         'constraints': (rs.get('constraints') if isinstance(rs, dict) else {}) if isinstance(rs, dict) else {},
     }
+    if scene_summary_profile:
+        out['scene_summary_profile'] = scene_summary_profile
+    if reference_label_profile:
+        out['reference_label_profile'] = reference_label_profile
+    return out
 
 
 def load_semantic_store(*, limit: int = 200) -> list[Record]:

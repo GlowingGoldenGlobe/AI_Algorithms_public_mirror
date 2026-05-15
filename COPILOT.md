@@ -14,7 +14,7 @@ This repo is **not** a language model. It is a deterministic, measurement‑firs
 - `README.md` — implemented loop, decision signals, and audit artifacts.
 - `AI_Brain/ARCHITECTURE.md` — 3D measurement core and deterministic data flow.
 - `AI_Brain/README.md` — 3D measurement pipeline scope and integration notes.
-- `temp_Feb2026_1.md` — current monthly log (`temp_12.md` is legacy).
+- `orchestration/project_modifications_tasks/tasks_042026_1.md` — current monthly log (`tasks_032026_1.md`, `temp_Feb2026_1.md`, and `temp_12.md` are historical archives).
 
 ## 4) What “smartness” means here (allowed framing)
 

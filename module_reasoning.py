@@ -34,6 +34,15 @@ class SynthesisResult(TypedDict):
     coherence_gain: float
 
 
+class ComprehensionArtifact(TypedDict):
+    version: int
+    quality: Literal['strong', 'weak']
+    summary: str
+    supporting_evidence: Dict[str, Any]
+    rationale: Dict[str, Any]
+    unresolved_gaps: list[str]
+
+
 def _quantile_sorted(xs_sorted: list[float], q: float) -> Optional[float]:
     if not xs_sorted:
         return None
@@ -117,6 +126,29 @@ def _get_numeric_attr(entity: Dict[str, Any], attr: str) -> Optional[float]:
     return None
 
 
+_SCENE_VALIDATION_PASS_STATUSES = frozenset({"pass", "passed", "ok", "success", "satisfied"})
+_SCENE_VALIDATION_WARNING_STATUSES = frozenset({"warn", "warning", "soft_fail"})
+_SCENE_VALIDATION_FAIL_STATUSES = frozenset({"fail", "failed", "error", "invalid", "mismatch"})
+
+
+def _normalize_scene_validation_status(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+    return value.strip().lower()
+
+
+def _scene_validation_reason(check_name: str, *, warning: bool) -> str:
+    if warning:
+        return f"scene validation warning: {check_name}"
+    mapping = {
+        "object_count": "scene object count mismatch",
+        "active_camera": "scene active camera mismatch",
+        "active_light_count": "scene active light count mismatch",
+        "export_target": "scene export target mismatch",
+    }
+    return mapping.get(check_name, f"scene validation failed: {check_name}")
+
+
 def check_constraints(relational_state: Dict[str, Any]) -> Dict[str, Any]:
     """Check constraints deterministically.
 
@@ -147,7 +179,7 @@ def check_constraints(relational_state: Dict[str, Any]) -> Dict[str, Any]:
         if not isinstance(c, dict):
             continue
         ctype = c.get("type")
-        if ctype not in ("lt", "gt", "eq", "neq", "spatial"):
+        if ctype not in ("lt", "gt", "eq", "neq", "spatial", "scene_validation"):
             continue
         args = c.get("args")
         if not isinstance(args, dict):
@@ -155,10 +187,9 @@ def check_constraints(relational_state: Dict[str, Any]) -> Dict[str, Any]:
         entity_id = args.get("entity_id")
         severity = c.get("severity") if c.get("severity") in ("hard", "soft") else "soft"
 
-        if not isinstance(entity_id, str) or not entity_id:
-            continue
-
         if ctype == "spatial":
+            if not isinstance(entity_id, str) or not entity_id:
+                continue
             # Minimal deterministic validation of spatial constraints.
             # Spec alignment: missing/malformed data is treated as SOFT violation;
             # explicit mismatches use the constraint severity.
@@ -280,6 +311,71 @@ def check_constraints(relational_state: Dict[str, Any]) -> Dict[str, Any]:
                 )
             continue
 
+        if ctype == "scene_validation":
+            check_name = args.get("check_name")
+            scene_id = args.get("scene_id")
+            expected = args.get("expected")
+            actual = args.get("actual")
+            status = _normalize_scene_validation_status(c.get("status"))
+
+            details: Dict[str, Any] = {}
+            if isinstance(scene_id, str) and scene_id:
+                details["scene_id"] = scene_id
+
+            violated = False
+            warning = False
+            reason = ""
+            out_severity = severity
+
+            if not isinstance(check_name, str) or not check_name:
+                violated = True
+                out_severity = "soft"
+                reason = "scene validation metadata missing"
+                details["check_name_missing"] = True
+            elif status in _SCENE_VALIDATION_PASS_STATUSES:
+                violated = False
+            elif status in _SCENE_VALIDATION_WARNING_STATUSES:
+                violated = True
+                warning = True
+                out_severity = "soft"
+                reason = _scene_validation_reason(check_name, warning=True)
+            elif status in _SCENE_VALIDATION_FAIL_STATUSES:
+                violated = True
+                reason = _scene_validation_reason(check_name, warning=False)
+            elif status:
+                violated = True
+                out_severity = "soft"
+                reason = "scene validation status unrecognized"
+                details["status_unrecognized"] = status
+            elif expected == actual:
+                violated = False
+            else:
+                violated = True
+                reason = _scene_validation_reason(str(check_name), warning=False)
+                details["status_missing"] = True
+
+            if violated:
+                violations.append(
+                    {
+                        "index": i,
+                        "type": ctype,
+                        "severity": out_severity,
+                        "entity_id": entity_id if isinstance(entity_id, str) else None,
+                        "scene_id": scene_id if isinstance(scene_id, str) else None,
+                        "check_name": check_name if isinstance(check_name, str) else None,
+                        "expected": expected,
+                        "actual": actual,
+                        "status": status or None,
+                        "constraint": c,
+                        "reason": reason,
+                        "details": details,
+                    }
+                )
+            continue
+
+        if not isinstance(entity_id, str) or not entity_id:
+            continue
+
         # Numeric attribute constraints.
         attr = args.get("attribute")
         value = args.get("value")
@@ -341,9 +437,97 @@ def check_constraints(relational_state: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def summarize_scene_validation_outcomes(
+    relational_state: Dict[str, Any],
+    constraint_report: Optional[Dict[str, Any]] = None,
+) -> Optional[Dict[str, Any]]:
+    """Summarize scene_validation outcomes for downstream reporting."""
+    if not isinstance(relational_state, dict):
+        return None
+
+    constraints = relational_state.get("constraints")
+    if not isinstance(constraints, list):
+        return None
+
+    scene_constraints: List[tuple[int, Dict[str, Any]]] = [
+        (index, item)
+        for index, item in enumerate(constraints)
+        if isinstance(item, dict) and item.get("type") == "scene_validation"
+    ]
+    if not scene_constraints:
+        return None
+
+    if not isinstance(constraint_report, dict):
+        constraint_report = check_constraints(relational_state)
+
+    violations = constraint_report.get("violations") if isinstance(constraint_report, dict) else None
+    if not isinstance(violations, list):
+        violations = []
+
+    violation_map: Dict[int, Dict[str, Any]] = {
+        int(item.get("index")): item
+        for item in violations
+        if isinstance(item, dict) and item.get("type") == "scene_validation" and isinstance(item.get("index"), int)
+    }
+
+    checks: List[Dict[str, Any]] = []
+    scene_ids = set()
+    passed = 0
+    warnings = 0
+    failed = 0
+
+    for original_index, constraint in scene_constraints:
+        args = constraint.get("args") if isinstance(constraint.get("args"), dict) else {}
+        check_name = str(args.get("check_name") or "")
+        scene_id = args.get("scene_id") if isinstance(args.get("scene_id"), str) and args.get("scene_id") else None
+        if scene_id:
+            scene_ids.add(scene_id)
+
+        violation = violation_map.get(original_index)
+        status = _normalize_scene_validation_status(constraint.get("status")) or None
+        if isinstance(violation, dict):
+            severity = violation.get("severity") if violation.get("severity") in ("hard", "soft") else "soft"
+            if severity == "hard":
+                outcome = "failed"
+                failed += 1
+            else:
+                outcome = "warning"
+                warnings += 1
+            reason = violation.get("reason") if isinstance(violation.get("reason"), str) else None
+        else:
+            outcome = "passed"
+            severity = "none"
+            reason = None
+            passed += 1
+
+        checks.append(
+            {
+                "check_name": check_name,
+                "outcome": outcome,
+                "severity": severity,
+                "status": status,
+                "scene_id": scene_id,
+                "reason": reason,
+            }
+        )
+
+    checks.sort(key=lambda item: (str(item.get("scene_id") or ""), str(item.get("check_name") or "")))
+    return {
+        "present": True,
+        "total_checks": len(scene_constraints),
+        "passed": passed,
+        "warnings": warnings,
+        "failed": failed,
+        "has_hard_failure": failed > 0,
+        "has_warning": warnings > 0,
+        "scene_ids": sorted(scene_ids),
+        "checks": checks,
+    }
+
+
 def detect_contradictions(relational_state: Dict[str, Any]) -> Dict[str, Any]:
     """Deterministic contradiction detection.
-    
+
     Rule (minimal): same subj + pred, different obj, both confidence >= 0.8.
     """
 
@@ -613,6 +797,100 @@ def evaluate_synthesis_gain(*, before: float, after: float) -> float:
     return float(after) - float(before)
 
 
+def build_comprehension_artifact(
+    *,
+    input_ids: list[str],
+    value_stats: Dict[str, Any],
+    vector_norm_stats: Dict[str, Any],
+    coherence: Dict[str, Any],
+    counterfactuals: list[Dict[str, Any]],
+    summary: Optional[str] = None,
+) -> ComprehensionArtifact:
+    """Build a compact deterministic comprehension review artifact."""
+    stable_input_ids = sorted(str(item) for item in (input_ids or []) if isinstance(item, str) and item)
+    stable_counterfactuals = [item for item in (counterfactuals or []) if isinstance(item, dict)]
+    stable_counterfactuals = sorted(stable_counterfactuals, key=lambda item: str(item.get('dropped_input') or ''))
+
+    input_count = len(stable_input_ids)
+    counterfactual_count = len(stable_counterfactuals)
+
+    numeric_value_count = 0
+    if isinstance(value_stats, dict) and isinstance(value_stats.get('n'), int):
+        numeric_value_count = int(value_stats.get('n') or 0)
+
+    try:
+        coherence_gain = float(coherence.get('gain') or 0.0) if isinstance(coherence, dict) else 0.0
+    except Exception:
+        coherence_gain = 0.0
+    sign_consistent = bool(coherence.get('stability', {}).get('sign_consistent_with_full')) if isinstance(coherence, dict) else False
+
+    unresolved_gaps: list[str] = []
+    if input_count < 2:
+        unresolved_gaps.append('multiple supporting inputs not available')
+    if numeric_value_count <= 0:
+        unresolved_gaps.append('numeric value evidence unavailable')
+    if counterfactual_count <= 0:
+        unresolved_gaps.append('counterfactual stability evidence unavailable')
+    if coherence_gain < 0.0:
+        unresolved_gaps.append('coherence gain is negative')
+    elif not sign_consistent:
+        unresolved_gaps.append('counterfactual coherence support is mixed')
+
+    quality: Literal['strong', 'weak']
+    if not unresolved_gaps:
+        quality = 'strong'
+    else:
+        quality = 'weak'
+
+    if quality == 'strong':
+        if coherence_gain > 0.0:
+            default_summary = (
+                f'Evidence-backed comprehension across {input_count} inputs '
+                f'with positive coherence gain ({coherence_gain:.6f}).'
+            )
+            rationale_reason = 'positive coherence gain is supported by stable leave-one-out checks'
+        else:
+            default_summary = (
+                f'Evidence-backed comprehension across {input_count} inputs '
+                f'with non-negative coherence gain ({coherence_gain:.6f}).'
+            )
+            rationale_reason = 'non-negative coherence gain is supported by stable leave-one-out checks'
+        rationale = {
+            'status': 'evidence_backed',
+            'reason': rationale_reason,
+            'coherence_gain': float(coherence_gain),
+            'sign_consistent_with_full': True,
+        }
+    else:
+        reason = unresolved_gaps[0] if unresolved_gaps else 'supporting evidence remains limited'
+        default_summary = f'Comprehension remains reviewable but incomplete: {reason}.'
+        rationale = {
+            'status': 'needs_review',
+            'reason': reason,
+            'coherence_gain': float(coherence_gain),
+            'sign_consistent_with_full': bool(sign_consistent),
+        }
+
+    normalized_summary = summary.strip() if isinstance(summary, str) and summary.strip() else default_summary
+    return {
+        'version': 1,
+        'quality': quality,
+        'summary': normalized_summary,
+        'supporting_evidence': {
+            'input_ids': stable_input_ids,
+            'input_count': int(input_count),
+            'numeric_value_count': int(numeric_value_count),
+            'counterfactual_count': int(counterfactual_count),
+            'coherence_gain': float(coherence_gain),
+            'sign_consistent_with_full': bool(sign_consistent),
+            'value_stats': value_stats if isinstance(value_stats, dict) else {},
+            'vector_norm_stats': vector_norm_stats if isinstance(vector_norm_stats, dict) else {},
+        },
+        'rationale': rationale,
+        'unresolved_gaps': sorted(unresolved_gaps),
+    }
+
+
 def synthesize(*, records: list[Record], opportunity: SynthesisOpportunity) -> SynthesisResult:
     """Synthesize a new derived record from target records."""
     target_ids = list(opportunity.get('target_ids') or [])
@@ -680,6 +958,13 @@ def synthesize(*, records: list[Record], opportunity: SynthesisOpportunity) -> S
             'stability': stability,
         },
     }
+    comprehension = build_comprehension_artifact(
+        input_ids=tid_sorted,
+        value_stats=value_stats,
+        vector_norm_stats=norm_stats,
+        coherence=why['coherence'],
+        counterfactuals=counterfactuals,
+    )
 
     return {
         'new_record_id': 'synth_' + '_'.join(tid_sorted),
@@ -689,6 +974,7 @@ def synthesize(*, records: list[Record], opportunity: SynthesisOpportunity) -> S
         'coherence_gain': float(gain),
         # Additive Think-Deeper artifacts (do not break existing callers).
         'why': why,
+        'comprehension': comprehension,
         'counterfactuals': counterfactuals,
     }
 

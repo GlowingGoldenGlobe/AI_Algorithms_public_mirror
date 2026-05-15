@@ -1,0 +1,3322 @@
+<!--
+AI_Algorithms — Interactive Metrics Dashboard
+
+Offline-friendly:
+- Works with file:// by using file pickers (cannot auto-read local files for security reasons).
+- Optional: run a local server (python -m http.server) to enable relative-path fetch.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI_Algorithms — Dashboard</title>
+  <style>
+    :root {
+      --bg: #0b0d10;
+      --panel: #121621;
+      --panel2: #0f1320;
+      --text: #e7eef8;
+      --muted: #a9b7cc;
+      --accent: #66d9ef;
+      --accent2: #a6e22e;
+      --warn: #fd971f;
+      --bad: #ff6b6b;
+      --border: #2a3243;
+      --shadow: rgba(0, 0, 0, 0.35);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      font-family: var(--sans);
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header {
+      padding: 20px 16px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, #0b0d10 0%, rgba(18,22,33,0.75) 100%);
+    }
+    .wrap { max-width: 1200px; margin: 0 auto; }
+
+    h1 { margin: 0 0 6px 0; font-size: 22px; }
+    .subtitle { margin: 0; color: var(--muted); font-size: 13px; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      padding: 16px;
+    }
+    @media (min-width: 1000px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 10px 24px var(--shadow);
+      overflow: hidden;
+    }
+
+    .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .controls label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    input[type="file"], input[type="text"], select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    button {
+      border: 1px solid var(--border);
+      background: #0d1220;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 12px;
+      cursor: pointer;
+      font-weight: 700;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+    button:hover { border-color: var(--accent); }
+
+    .hint {
+      margin: 6px 0 0 0;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .autofetchNotice {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(102, 217, 239, 0.08);
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--text);
+    }
+    .autofetchNotice.warn {
+      border-color: rgba(253, 151, 31, 0.55);
+      background: rgba(253, 151, 31, 0.08);
+    }
+    .autofetchNotice.good {
+      border-color: rgba(166, 226, 46, 0.5);
+      background: rgba(166, 226, 46, 0.08);
+    }
+
+    .infoToggle {
+      display: inline-block;
+      margin-left: 8px;
+    }
+
+    .infoToggle summary {
+      list-style: none;
+      cursor: pointer;
+      -webkit-user-select: none;
+      user-select: none;
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 2px 8px;
+      background: var(--panel2);
+    }
+
+    .infoToggle summary::-webkit-details-marker { display: none; }
+    .infoToggle[open] summary { border-color: var(--accent); color: var(--text); }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+    @media (min-width: 700px) {
+      .kpis { grid-template-columns: repeat(4, 1fr); }
+    }
+    .kpi {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .kpi .label { color: var(--muted); font-size: 12px; }
+    .kpi .value { font-family: var(--mono); font-size: 18px; margin-top: 6px; }
+
+    .liveHealthCallout {
+      grid-column: 1 / -1;
+      background: linear-gradient(180deg, rgba(102,217,239,0.08) 0%, rgba(18,22,33,0.92) 100%);
+      border-color: rgba(102,217,239,0.35);
+    }
+    .liveHealthGrid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    @media (min-width: 900px) {
+      .liveHealthGrid { grid-template-columns: 1.1fr 0.9fr; }
+    }
+    .liveHealthList {
+      margin: 10px 0 0 18px;
+      padding: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .liveHealthList li + li {
+      margin-top: 6px;
+    }
+    .liveHealthActions {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+    .liveHealthActions .row {
+      gap: 8px;
+    }
+    .fixtureVerificationRow {
+      margin-top: 10px;
+    }
+
+    .proposalSummaryStrip {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    @media (min-width: 700px) {
+      .proposalSummaryStrip { grid-template-columns: repeat(3, 1fr); }
+    }
+    .proposalSummaryCard {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .proposalSummaryCard.good { border-color: rgba(166,226,46,0.5); }
+    .proposalSummaryCard.warn { border-color: rgba(253,151,31,0.5); }
+    .proposalSummaryCard.bad { border-color: rgba(255,107,107,0.5); }
+    .proposalSummaryCard .label {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .proposalSummaryCard .value {
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.45;
+      margin-top: 6px;
+    }
+    .createTierProposalRow.initialSelection td:first-child {
+      box-shadow: inset 3px 0 0 rgba(255,107,107,0.75);
+    }
+    .createTierProposalRow.runtimeGate td:first-child {
+      box-shadow: inset 3px 0 0 rgba(253,151,31,0.75);
+    }
+    .createTierProposalRow.acceptedRow td:first-child {
+      box-shadow: inset 3px 0 0 rgba(166,226,46,0.75);
+    }
+    .createTierProposalRow td {
+      background: rgba(255,255,255,0.01);
+    }
+    .createTierProposalDetailList {
+      display: grid;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .createTierProposalDetailLine {
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+    .createTierProposalDetailLine strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .charts {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .chart {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px;
+      min-height: 280px;
+    }
+
+    .chart.hint-only {
+      min-height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 14px;
+    }
+
+    .chart.hint-only .hint {
+      margin: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+    th, td {
+      border-bottom: 1px solid var(--border);
+      padding: 8px 6px;
+      text-align: left;
+      vertical-align: top;
+      word-break: break-word;
+    }
+    th { color: var(--muted); font-weight: 700; }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--muted);
+    }
+    .tag.good { border-color: rgba(166,226,46,0.6); color: var(--accent2); }
+    .tag.warn { border-color: rgba(253,151,31,0.6); color: var(--warn); }
+    .tag.bad { border-color: rgba(255,107,107,0.6); color: var(--bad); }
+
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      resize: vertical;
+      border-radius: 12px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      background: #0d1220;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.35;
+      box-sizing: border-box;
+    }
+
+    .footer {
+      padding: 16px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+    }
+  </style>
+  <script
+    src="https://cdn.plot.ly/plotly-2.30.0.min.js"
+    defer
+    onload="window.__plotly_loaded=true; try{ if(window.__loaded){ renderFromLoaded(window.__loaded); } }catch(e){}"
+  ></script>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="row" style="justify-content: space-between;">
+        <div>
+          <h1>AI_Algorithms — Live Runtime + Metrics Dashboard</h1>
+          <p class="subtitle">Use the live runtime panels first for current AI Brain health, then use historical metrics and report sections for deeper offline analysis.</p>
+        </div>
+        <div class="row">
+          <a href="index.html" style="font-family: var(--mono); font-size: 12px;">Back to index</a>
+        </div>
+      </div>
+      <p class="hint">
+        Live-health note: in server mode, the dashboard can fetch the current runtime snapshot and ops status directly from `TemporaryQueue/ai_brain_metrics_live.json` and `TemporaryQueue/ops_status.json`.
+        In file:// mode, use the file pickers below because browsers cannot auto-read local files.
+      </p>
+      <div id="autofetchNotice" class="autofetchNotice" style="display:none;"></div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="grid">
+      <section class="card liveHealthCallout">
+        <h2 style="margin:0 0 8px 0; font-size: 16px;">Live AI Brain Health</h2>
+        <div class="hint">This is the primary live-health path in server mode. It uses the existing runtime artifacts already produced by the dashboard suite and the ops-status report, without adding any new control surface.</div>
+
+        <div class="liveHealthGrid">
+          <div>
+            <div class="hint">Use this section first when you want the current runtime view rather than historical or manually loaded demo artifacts.</div>
+            <ul class="liveHealthList">
+              <li><strong>Live snapshot</strong> reads `TemporaryQueue/ai_brain_metrics_live.json` written by the metrics watcher.</li>
+              <li><strong>Ops status</strong> reads `TemporaryQueue/ops_status.json` written by `scripts/ops_status_report.py` and can refresh through `/api/ops_status`.</li>
+              <li><strong>Analysis mode</strong> reuses the current live and near-live artifact files only: live health, activity scaling, hardware preflight, and the latest eval-backed scorecard.</li>
+              <li><strong>Operator readiness</strong> separates global runtime state from current-record readiness evidence such as guard heartbeat freshness, signal source, process observation, and measurement/schema trace status.</li>
+              <li><strong>Workflow pie payloads</strong> should be interpreted by source path and `generated_at`; the `TemporaryQueue` payload is the live attachment surface, while retained copies may differ.</li>
+              <li><strong>Historical metrics, adversarial reports, and scorecards</strong> remain available below as secondary inspection surfaces.</li>
+            </ul>
+          </div>
+
+          <div class="liveHealthActions">
+            <div class="row">
+              <button type="button" onclick="fetchLiveHealthNow()">Fetch Live Health Now</button>
+              <button type="button" onclick="fetchAnalysisModeNow()">Fetch Analysis Mode Now</button>
+              <button type="button" onclick="toggleLiveHealthAutorefresh()">Toggle Live Health Auto-Refresh</button>
+              <span id="liveHealthTag" class="tag">idle</span>
+            </div>
+            <div>
+              <label for="liveHealthInterval">Live-health auto-refresh interval (seconds)</label>
+              <input id="liveHealthInterval" type="text" value="10" />
+              <div class="hint">Server mode only. This keeps the live snapshot and ops-status panels moving together.</div>
+            </div>
+            <div class="hint">
+              Quick open (server mode):
+              <a href="dashboard.html?autofetch=analysis">dashboard.html?autofetch=analysis</a>
+              |
+              <a href="dashboard.html?autofetch=live">dashboard.html?autofetch=live</a>
+              |
+              <a href="dashboard.html?autofetch=ops">dashboard.html?autofetch=ops</a>
+              |
+              <a href="dashboard.html?autofetch=run">dashboard.html?autofetch=run</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 style="margin:0 0 8px 0; font-size: 16px;">Historical Metrics + Report Inputs</h2>
+        <div class="controls">
+          <div>
+            <label for="metricsFile">metrics.json (or metrics_compare.json)</label>
+            <input id="metricsFile" type="file" accept="application/json" />
+            <div class="hint">Suggested: TemporaryQueue/metrics.json (run) or TemporaryQueue/metrics_compare.json (compare)</div>
+          </div>
+
+          <div>
+            <label for="reportsFiles">adversarial_report_*.json (multi-select)</label>
+            <input id="reportsFiles" type="file" accept="application/json" multiple />
+            <div class="hint">Select one or more adversarial reports (S1..S6) to populate tables and histograms.</div>
+          </div>
+
+          <div>
+            <label for="sweepCsv">sweep_results.csv (optional)</label>
+            <input id="sweepCsv" type="file" accept="text/csv" />
+            <div class="hint">Optional: TemporaryQueue/sweep_results.csv</div>
+          </div>
+
+          <div class="row">
+            <button type="button" onclick="renderAll()">Render Dashboard</button>
+            <button type="button" onclick="tryFetchDefaults()">Try Fetch Defaults (server mode)</button>
+            <button type="button" onclick="generateCompareAndLoadDefaults()">Generate Compare Metrics + Load Defaults</button>
+            <button type="button" onclick="window.open('composition_workflow_pies.html?autofetch=1', '_blank', 'noopener')">Open workflow pie charts</button>
+            <span id="status" class="tag">idle</span>
+          </div>
+
+          <div>
+            <label for="basePath">Server mode base path (optional)</label>
+            <input id="basePath" type="text" value="." />
+            <div class="hint">
+              If you serve the repo (e.g. python -m http.server), this attempts to fetch
+              ./TemporaryQueue/metrics.json (or metrics_compare.json) and adversarial_report_*.json (only known names).
+              For file:// usage, prefer the file pickers.
+            </div>
+          </div>
+
+          <div>
+            <label for="metricsServerSource">Server mode metrics source</label>
+            <select id="metricsServerSource">
+              <option value="run">Run metrics (TemporaryQueue/metrics.json)</option>
+              <option value="compare">Compare metrics (TemporaryQueue/metrics_compare.json)</option>
+            </select>
+            <div class="hint">Tip: use compare metrics to avoid overwriting live/run totals.</div>
+          </div>
+
+          <div class="hint">
+            Quick open (server mode):
+            <a href="dashboard.html?autofetch=analysis">dashboard.html?autofetch=analysis</a>
+            |
+            <a href="dashboard.html?autofetch=run">dashboard.html?autofetch=run</a>
+            |
+            <a href="dashboard.html?autofetch=compare">dashboard.html?autofetch=compare</a>
+            |
+            <a href="dashboard.html?autofetch=live">dashboard.html?autofetch=live</a>
+            |
+            <a href="composition_workflow_pies.html?autofetch=1">composition_workflow_pies.html?autofetch=1</a>
+          </div>
+        </div>
+
+        <div class="kpis" id="kpis"></div>
+      </section>
+
+      <section class="card">
+        <h2 style="margin:0 0 8px 0; font-size: 16px;">Charts</h2>
+        <div class="charts">
+          <div class="chart" id="chartCounters"></div>
+          <div class="chart" id="chartHistogram"></div>
+          <div class="chart" id="chartPie"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 style="margin:0 0 8px 0; font-size: 16px;">Escalation Events</h2>
+        <div class="hint">Scans loaded adversarial reports for escalation signals (e.g., task.escalated, validation.result == "escalated").</div>
+        <div id="escalationEmpty" class="hint" style="display:none; margin-top:10px;">No escalation events found in loaded reports.</div>
+        <div style="overflow:auto;">
+          <table id="escalationTable" aria-label="Escalation events">
+            <thead>
+              <tr>
+                <th>report_file</th>
+                <th>scenario_id</th>
+                <th>task_id</th>
+                <th>retry_count</th>
+                <th>reason</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+
+              <details style="margin-top: 6px;">
+                <summary style="cursor:pointer; font-family: var(--mono); font-size: 12px; color: var(--muted);">Fetch log (server mode)</summary>
+                <div class="hint" style="margin-top: 8px;">Shows which URLs were attempted and their status codes.</div>
+                <pre id="fetchLog" style="white-space: pre-wrap; margin: 8px 0 0 0; font-family: var(--mono); font-size: 11px; color: var(--muted);"></pre>
+              </details>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 style="margin:0 0 8px 0; font-size: 16px;">Live Snapshot (ai_brain_metrics)</h2>
+        <div class="hint">Displays `TemporaryQueue/ai_brain_metrics_live.json` produced by the metrics watcher task.</div>
+
+        <div class="controls" style="margin-top: 10px;">
+          <div>
+            <label for="liveSnapshotFile">Load snapshot JSON (file:// mode)</label>
+            <input id="liveSnapshotFile" type="file" accept="application/json" />
+            <div class="hint">Suggested: TemporaryQueue/ai_brain_metrics_live.json</div>
+          </div>
+
+          <div class="row">
+            <button type="button" onclick="loadLiveSnapshotFromPicker()">Load snapshot from file</button>
+            <button type="button" onclick="fetchLiveSnapshotOnce()">Fetch snapshot (server mode)</button>
+            <button type="button" onclick="toggleLiveSnapshotAutorefresh()">Toggle Auto-Refresh</button>
+            <span id="liveSnapshotStatus" class="tag">idle</span>
+          </div>
+
+          <div>
+            <label for="liveSnapshotInterval">Auto-refresh interval (seconds)</label>
+            <input id="liveSnapshotInterval" type="text" value="10" />
+            <div class="hint">Only works in server mode (http://...). Uses the base path above.</div>
+          </div>
+        </div>
+
+        <div style="overflow:auto; margin-top: 10px;">
+          <table aria-label="Live snapshot summary">
+            <thead>
+              <tr>
+                <th>ts</th>
+                <th>orchestrator_lock</th>
+                <th>temp_files</th>
+                <th>active_files</th>
+                <th>holding_files</th>
+                <th>metrics_run</th>
+                <th>metrics_compare</th>
+              </tr>
+            </thead>
+            <tbody id="liveSnapshotTableBody"></tbody>
+          </table>
+        </div>
+
+        <textarea id="liveSnapshotRaw" spellcheck="false" placeholder="Load or fetch a snapshot to see raw JSON..." style="height: 160px; margin-top: 10px;"></textarea>
+      </section>
+
+      <section class="card">
+        <h2 style="margin:0 0 8px 0; font-size: 16px;">Ops Status (ops_status.json)</h2>
+        <div class="hint">Displays `TemporaryQueue/ops_status.json` produced by the VS Code task “AI Brain: ops status report (write JSON)”.</div>
+
+        <div class="controls" style="margin-top: 10px;">
+          <div>
+            <label for="opsStatusFile">Load ops status JSON (file:// mode)</label>
+            <input id="opsStatusFile" type="file" accept="application/json" />
+            <div class="hint">Suggested: TemporaryQueue/ops_status.json</div>
+          </div>
+
+          <div class="row">
+            <button type="button" onclick="loadOpsStatusFromPicker()">Load ops status from file</button>
+            <button type="button" onclick="fetchOpsStatusOnce()">Fetch ops status (server mode)</button>
+            <button type="button" onclick="generateAndFetchOpsStatus()">Generate Ops Status + Fetch</button>
+            <button type="button" onclick="toggleOpsStatusAutorefresh()">Toggle Auto-Refresh</button>
+            <span id="opsStatusTag" class="tag">idle</span>
+          </div>
+
+          <div>
+            <label for="opsStatusInterval">Auto-refresh interval (seconds)</label>
+            <input id="opsStatusInterval" type="text" value="10" />
+            <div class="hint">Only works in server mode (http://...). Uses the base path above.</div>
+          </div>
+        </div>
+
+        <div id="opsStatusActivity" class="hint">Runtime activity text will appear here after ops status loads.</div>
+        <div id="opsStatusSurfaceSummary" class="hint">Runtime surface inventory will appear here after ops status loads.</div>
+        <div id="opsStatusOperatorReadiness" class="hint">Operator freshness/readiness details will appear here after ops status loads.</div>
+
+        <div class="row fixtureVerificationRow">
+          <button type="button" onclick="loadCreateTierProposalFixture('runtime_gate')">Load runtime-gate fixture</button>
+          <button type="button" onclick="loadCreateTierProposalFixture('initial_selection')">Load initial-selection fixture</button>
+          <span id="createTierFixtureTag" class="tag">idle</span>
+        </div>
+        <div class="hint">These verification helpers load checked-in fixture payloads from `tests/fixtures/` so the already-landed panel can be inspected against non-empty proposal rows without touching the live `TemporaryQueue/ops_status.json` path.</div>
+        <div class="hint">Operator flow: in server mode, use the fixture buttons above. In file:// mode, use <strong>Load ops status from file</strong> and select either `tests/fixtures/dashboard_ops_status_runtime_gate_block.json` or `tests/fixtures/dashboard_ops_status_initial_selection_block.json`.</div>
+
+        <div style="overflow:auto; margin-top: 10px;">
+          <table aria-label="Ops status summary">
+            <thead>
+              <tr>
+                <th>ts</th>
+                <th>brain_running</th>
+                <th>runtime_state</th>
+                <th>control_plane_running</th>
+                <th>stop_reason</th>
+                <th>server_ping</th>
+                <th>server_pid</th>
+                <th>watcher_ok</th>
+                <th>watcher_live_age_sec</th>
+                <th>orchestrator_paused</th>
+                <th>ops_ok</th>
+              </tr>
+            </thead>
+            <tbody id="opsStatusTableBody"></tbody>
+          </table>
+        </div>
+
+        <div style="margin-top: 14px;">
+          <h3 style="margin:0 0 8px 0; font-size: 14px;">Create-Tier Proposal Review (dry-run)</h3>
+            <div class="hint">Displays the read-only `tiers.create_tier_proposal_review` contract from `ops_status.json`. This panel reads only the documented proposal-review summary, table, and drilldown fields, and it does not imply create-tier authority or serving runtime state.</div>
+
+          <div class="kpis" id="createTierProposalKpis" style="margin-top: 10px;">
+            <div class="kpi">
+              <div class="label">proposal_count</div>
+              <div class="value" id="createTierProposalCount">0</div>
+            </div>
+            <div class="kpi">
+              <div class="label">blocked_count</div>
+              <div class="value" id="createTierProposalBlocked">0</div>
+            </div>
+            <div class="kpi">
+              <div class="label">accepted_count</div>
+              <div class="value" id="createTierProposalAccepted">0</div>
+            </div>
+            <div class="kpi">
+              <div class="label">non_authoritative</div>
+              <div class="value" id="createTierProposalAuthority">yes</div>
+            </div>
+          </div>
+
+          <div class="proposalSummaryStrip" aria-label="Create-tier proposal summary strip">
+            <div class="proposalSummaryCard" id="createTierProposalStateCard">
+              <div class="label">panel_state</div>
+              <div class="value" id="createTierProposalStateSummary">No create-tier proposal review is loaded.</div>
+            </div>
+            <div class="proposalSummaryCard" id="createTierProposalBlockingCard">
+              <div class="label">blocking_mix</div>
+              <div class="value" id="createTierProposalBlockingSummary">No blocking stages are visible.</div>
+            </div>
+            <div class="proposalSummaryCard" id="createTierProposalAuthorityCard">
+              <div class="label">authority_posture</div>
+              <div class="value" id="createTierProposalAuthoritySummary">All visible rows must remain non-authoritative and non-serving.</div>
+            </div>
+          </div>
+
+          <div id="createTierProposalStale" class="hint" style="display:none; margin-top:10px;"></div>
+          <div id="createTierProposalEmpty" class="hint" style="display:none; margin-top:10px;">No create-tier proposal rows are currently visible in the loaded ops-status payload.</div>
+
+          <div style="overflow:auto; margin-top: 10px;">
+            <table aria-label="Create-tier proposal review table">
+              <thead>
+                <tr>
+                  <th>factory_id</th>
+                  <th>family_template_id</th>
+                  <th>planned_group_count</th>
+                  <th>planned_instance_count</th>
+                  <th>blocking_stage</th>
+                  <th>runtime_gate_mode</th>
+                  <th>authority</th>
+                  <th>details</th>
+                </tr>
+              </thead>
+              <tbody id="createTierProposalTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <textarea id="opsStatusRaw" spellcheck="false" placeholder="Load or fetch ops status to see raw JSON..." style="height: 160px; margin-top: 10px;"></textarea>
+      </section>
+
+      <section class="card">
+        <h2 style="margin:0 0 8px 0; font-size: 16px;">Evaluation Scorecard (heuristics)</h2>
+        <div class="hint">
+          Estimates category-level health (speed, correctness, retrieval, constraints/simulation) from existing local artifacts.
+          This panel is read-only and uses proxies; see README for details.
+        </div>
+
+        <div class="controls" style="margin-top: 10px;">
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div>
+              <label for="scorecardStatusHistoryFile">Load status history JSONL (file:// mode)</label>
+              <input id="scorecardStatusHistoryFile" type="file" accept="application/json,application/jsonl,text/plain" />
+              <div class="hint">Suggested: TemporaryQueue/status_history.jsonl</div>
+            </div>
+            <div>
+              <label for="scorecardEvalOutFile">Load eval output (file:// mode)</label>
+              <input id="scorecardEvalOutFile" type="file" accept="text/plain" />
+              <div class="hint">Suggested: run_eval.out (or TemporaryQueue/eval_latest.out if your runner emits it)</div>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top: 10px;">
+            <button type="button" onclick="loadScorecardInputsFromPickers()">Load inputs from files</button>
+            <button type="button" onclick="fetchScorecardInputsOnce()">Fetch inputs (server mode)</button>
+            <button type="button" onclick="computeAndRenderScorecard()">Compute scorecard</button>
+            <span id="scorecardTag" class="tag">idle</span>
+          </div>
+
+          <div style="margin-top: 10px;">
+            <label for="scorecardWindowHours">Speed window (hours)</label>
+            <input id="scorecardWindowHours" type="text" value="11" />
+            <div class="hint">Uses activity_cycles delta in status_history.jsonl over this window (best-effort).</div>
+          </div>
+        </div>
+
+        <div style="overflow:auto; margin-top: 10px;">
+          <table aria-label="Evaluation scorecard">
+            <thead>
+              <tr>
+                <th>category</th>
+                <th>signal / proxy</th>
+                <th>value</th>
+                <th>notes</th>
+              </tr>
+            </thead>
+            <tbody id="scorecardTableBody"></tbody>
+          </table>
+        </div>
+
+        <textarea id="scorecardRaw" spellcheck="false" placeholder="Load/fetch inputs and compute to see raw details..." style="height: 180px; margin-top: 10px;"></textarea>
+      </section>
+
+      <section class="card">
+        <h2 style="margin:0 0 8px 0; font-size: 16px;">Mirror Tier (schedule mirror)</h2>
+        <div class="hint">Load a semantic record to inspect mirror schedule Tier 1 summary and Tier 2 delta fields.</div>
+
+        <div class="controls" style="margin-top: 10px;">
+          <div>
+            <label for="mirrorTierFile">Load semantic record JSON (file:// mode)</label>
+            <input id="mirrorTierFile" type="file" accept="application/json" />
+            <div class="hint">Suggested: LongTermStore/Semantic/&lt;id&gt;.json</div>
+          </div>
+
+          <div class="row">
+            <button type="button" onclick="loadMirrorTierFromPicker()">Load mirror tier from file</button>
+            <button type="button" onclick="fetchMirrorTierFromServer()">Fetch mirror tier (server mode)</button>
+            <span id="mirrorTierTag" class="tag">idle</span>
+          </div>
+
+          <div>
+            <label for="mirrorTierPath">Server mode record path</label>
+            <input id="mirrorTierPath" type="text" value="LongTermStore/Semantic/" />
+            <div class="hint">Enter a specific record, e.g. LongTermStore/Semantic/demo020.json</div>
+          </div>
+        </div>
+
+        <div style="overflow:auto; margin-top: 10px;">
+          <table aria-label="Mirror schedule summary">
+            <thead>
+              <tr>
+                <th>field</th>
+                <th>value</th>
+              </tr>
+            </thead>
+            <tbody id="mirrorTierSummaryBody"></tbody>
+          </table>
+        </div>
+
+        <div style="overflow:auto; margin-top: 10px;">
+          <table aria-label="Mirror schedule delta">
+            <thead>
+              <tr>
+                <th>field</th>
+                <th>value</th>
+              </tr>
+            </thead>
+            <tbody id="mirrorTierDeltaBody"></tbody>
+          </table>
+        </div>
+
+        <textarea id="mirrorTierRaw" spellcheck="false" placeholder="Load a semantic record to see raw JSON..." style="height: 180px; margin-top: 10px;"></textarea>
+      </section>
+
+      <section class="card">
+        <h2 style="margin:0 0 8px 0; font-size: 16px;">Hardware Preflight (hardware limits)</h2>
+        <div class="hint">
+          Checks disk free space, available RAM (if psutil installed), and key directory size/file-count limits.
+          In file:// mode the browser cannot run Python; use the VS Code task below and then load/fetch the JSON.
+        </div>
+
+        <div class="controls" style="margin-top: 10px;">
+          <div>
+            <label for="hardwarePreflightFile">Load hardware preflight JSON (file:// mode)</label>
+            <input id="hardwarePreflightFile" type="file" accept="application/json" />
+            <div class="hint">Suggested: TemporaryQueue/hardware_preflight.json</div>
+          </div>
+
+          <div class="row">
+            <button type="button" onclick="loadHardwarePreflightFromPicker()">Load from file</button>
+            <button type="button" onclick="fetchHardwarePreflightOnce()">Fetch latest (server mode)</button>
+            <button type="button" onclick="generateAndFetchHardwarePreflight()">Generate + Fetch</button>
+            <span id="hardwarePreflightTag" class="tag">idle</span>
+          </div>
+
+          <div class="hint" style="font-family: var(--mono);">
+            VS Code task: <span style="color: var(--text);">AI Brain: preflight report (hardware limits JSON)</span>
+            <br />
+            Repo-root command: <span style="color: var(--text);">.venv/Scripts/python.exe scripts/hardware_limits_check.py --out TemporaryQueue/hardware_preflight.json --json</span>
+          </div>
+        </div>
+
+        <div style="overflow:auto; margin-top: 10px;">
+          <table aria-label="Hardware preflight summary">
+            <thead>
+              <tr>
+                <th>ts</th>
+                <th>ok</th>
+                <th>violations</th>
+                <th>disk_free_percent</th>
+                <th>disk_free_bytes</th>
+                <th>ram_available_bytes</th>
+              </tr>
+            </thead>
+            <tbody id="hardwarePreflightTableBody"></tbody>
+          </table>
+        </div>
+
+        <textarea id="hardwarePreflightRaw" spellcheck="false" placeholder="Load/fetch hardware preflight JSON to see raw details..." style="height: 200px; margin-top: 10px;"></textarea>
+      </section>
+
+      <section class="card">
+        <h2 style="margin:0 0 8px 0; font-size: 16px;">Metrics Table (metrics_table.py)</h2>
+        <div class="hint">
+          Shows a terminal-style table for run/compare metrics (and deltas). In file:// mode the browser cannot run Python,
+          so use the VS Code task “AI Brain: metrics table” (or run the command below) then refresh or copy/paste output here.
+        </div>
+
+        <div class="controls" style="margin-top: 10px;">
+          <div class="row">
+            <button type="button" onclick="generateMetricsTable()">Generate Metrics Table (server mode)</button>
+            <span id="metricsTableTag" class="tag">idle</span>
+          </div>
+
+          <div class="hint" style="font-family: var(--mono);">
+            Repo-root command: <span style="color: var(--text);">.venv/Scripts/python.exe scripts/metrics_table.py</span>
+          </div>
+        </div>
+
+        <textarea id="metricsTableRaw" spellcheck="false" placeholder="Click Generate (server mode), or paste terminal output here..." style="height: 220px; margin-top: 10px;"></textarea>
+      </section>
+
+      <section class="card">
+        <h2 style="margin:0 0 8px 0; font-size: 16px;">
+          Activity Scaling (activity_counts_report)
+          <details class="infoToggle">
+            <summary title="What is this?">i</summary>
+            <div class="hint" style="margin-top: 8px;">
+              “Scale over time” here means: how many activities (measure/retrieve/error_resolution/etc.) have been completed
+              across stored records, compared to a saved baseline.
+              <br /><br />
+              - Baseline persists at <span style="font-family: var(--mono);">ActiveSpace/Observability/activity_counts_baseline.json</span>
+              <br />
+              - History appends to <span style="font-family: var(--mono);">ActiveSpace/Observability/activity_counts_history.jsonl</span> (one line per run)
+              <br />
+              - Dashboard reads <span style="font-family: var(--mono);">TemporaryQueue/activity_scaling_latest.json</span> for latest+delta and can fall back to the history JSONL when the latest file has not been generated yet
+              <br /><br />
+              Use “Generate + Fetch” to append a new point and update deltas.
+            </div>
+          </details>
+        </h2>
+        <div class="hint">
+          Tracks aggregate completed activity counts over time. Creates a baseline snapshot and appends JSONL history,
+          then writes a latest JSON for the dashboard to fetch.
+        </div>
+
+        <div class="controls" style="margin-top: 10px;">
+          <div>
+            <label for="activityScalingFile">Load activity scaling latest JSON (file:// mode)</label>
+            <input id="activityScalingFile" type="file" accept="application/json" />
+            <div class="hint">Suggested: TemporaryQueue/activity_scaling_latest.json</div>
+          </div>
+
+          <div class="row">
+            <button type="button" onclick="loadActivityScalingFromPicker()">Load from file</button>
+            <button type="button" onclick="fetchActivityScalingOnce()">Fetch latest (server mode)</button>
+            <button type="button" onclick="generateAndFetchActivityScaling()">Generate + Fetch</button>
+            <span id="activityScalingTag" class="tag">idle</span>
+          </div>
+
+          <div class="hint" style="font-family: var(--mono);">
+            VS Code task: <span style="color: var(--text);">AI Brain: activity scaling log (baseline+append)</span>
+            <br />
+            Repo-root command: <span style="color: var(--text);">.venv/Scripts/python.exe scripts/activity_scaling_log.py --init-baseline --append</span>
+          </div>
+        </div>
+
+        <div style="overflow:auto; margin-top: 10px;">
+          <table aria-label="Activity scaling summary">
+            <thead>
+              <tr>
+                <th>ts_wall</th>
+                <th>baseline_ts_wall</th>
+                <th>history_entries</th>
+                <th>baseline_completed_total</th>
+                <th>current_completed_total</th>
+                <th>delta_completed_total</th>
+                <th>ratio</th>
+              </tr>
+            </thead>
+            <tbody id="activityScalingTableBody"></tbody>
+          </table>
+        </div>
+
+        <textarea id="activityScalingRaw" spellcheck="false" placeholder="Load/fetch activity scaling JSON to see raw details..." style="height: 200px; margin-top: 10px;"></textarea>
+      </section>
+
+      <section class="card">
+        <h2 style="margin:0 0 8px 0; font-size: 16px;">Per-Scenario Summary</h2>
+        <div style="overflow:auto;">
+          <table id="scenarioTable" aria-label="Scenario summary">
+            <thead>
+              <tr>
+                <th>scenario_id</th>
+                <th>pass/fail</th>
+                <th>sample_count (n)</th>
+                <th>deterministic_seed</th>
+                <th>report_file</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card" style="grid-column: 1 / -1;">
+        <h2 style="margin:0 0 8px 0; font-size: 16px;">Raw Metrics + Downloads</h2>
+        <div class="row" style="justify-content: space-between;">
+          <div class="hint">Raw metrics JSON is shown below for copy/paste and sanity checks.</div>
+          <div class="row">
+            <a id="downloadSweep" href="#" style="display:none; font-family: var(--mono); font-size: 12px;">Download loaded sweep CSV</a>
+          </div>
+        </div>
+        <textarea id="rawMetrics" spellcheck="false" placeholder="Load metrics.json to see raw content..."></textarea>
+      </section>
+    </div>
+  </main>
+
+  <div class="footer">
+    <div class="wrap">
+      <div>Tip: Use index.html for copy/paste commands. This page is read-only and safe offline.</div>
+      <div style="margin-top: 6px;">Operational: use VS Code tasks “AI Brain: dashboard suite (stop)” to stop monitoring, and “AI Brain: orchestrator pause/resume” to safely stop/start new cycles.</div>
+      <div style="margin-top: 6px;">Ops shortcut: “AI Brain: eval (safe: pause orch → eval → resume)”; trust `TemporaryQueue/eval_runs/safe_runs/safe_eval_latest.json` as the authoritative pause/eval/resume result.</div>
+    </div>
+  </div>
+
+  <script>
+    const DEFAULT_COUNTER_KEYS = [
+      'resolution_adaptive_used_total',
+      'resolution_adaptive_samples_total',
+      'resolution_adaptive_early_stop_total',
+      'resolution_fixed_samples_total',
+      'resolution_rollback_storm_escalations_total',
+      'parameter_events_used_total',
+      'parameter_events_available_total'
+    ];
+
+    const METRICS_SERVER_PATHS = {
+      run: 'TemporaryQueue/metrics.json',
+      compare: 'TemporaryQueue/metrics_compare.json',
+    };
+
+    const LIVE_SNAPSHOT_PATH = 'TemporaryQueue/ai_brain_metrics_live.json';
+    const OPS_STATUS_PATH = 'TemporaryQueue/ops_status.json';
+    const STATUS_HISTORY_PATH = 'TemporaryQueue/status_history.jsonl';
+    const EVAL_LATEST_OUT_PATH = 'TemporaryQueue/eval_latest.out';
+    const EVAL_OUT_FALLBACK_PATH = 'run_eval.out';
+    const ACTIVITY_SCALING_PATH = 'TemporaryQueue/activity_scaling_latest.json';
+    const ACTIVITY_SCALING_HISTORY_PATH = 'ActiveSpace/Observability/activity_counts_history.jsonl';
+    const HARDWARE_PREFLIGHT_PATH = 'TemporaryQueue/hardware_preflight.json';
+    const CREATE_TIER_PROPOSAL_FIXTURE_PATHS = {
+      runtime_gate: 'tests/fixtures/dashboard_ops_status_runtime_gate_block.json',
+      initial_selection: 'tests/fixtures/dashboard_ops_status_initial_selection_block.json',
+    };
+    let __opsStatusTimer = null;
+    let __liveHealthTimer = null;
+
+    let __scorecardLoaded = {
+      statusHistoryText: '',
+      evalOutText: '',
+    };
+
+    function setScorecardTag(text, kind='') {
+      const el = document.getElementById('scorecardTag');
+      if (!el) return;
+      el.textContent = text;
+      el.className = 'tag' + (kind ? (' ' + kind) : '');
+    }
+
+    function _parseIsoOrNull(ts) {
+      try {
+        if (!ts) return null;
+        const d = new Date(String(ts));
+        if (!Number.isFinite(d.getTime())) return null;
+        return d;
+      } catch {
+        return null;
+      }
+    }
+
+    function _parseJsonlBestEffort(txt) {
+      const out = [];
+      const lines = String(txt || '').split(/\r?\n/);
+      for (const line0 of lines) {
+        const line = String(line0 || '').trim();
+        if (!line) continue;
+        try {
+          const obj = JSON.parse(line);
+          if (obj && typeof obj === 'object') out.push(obj);
+        } catch {
+          // ignore
+        }
+      }
+      return out;
+    }
+
+    function _buildActivityScalingPayloadFromHistory(historyRows) {
+      const rows = Array.isArray(historyRows) ? historyRows.filter(r => r && typeof r === 'object') : [];
+      if (!rows.length) return null;
+      const latest = rows[rows.length - 1] || {};
+      return {
+        ts_wall: latest.ts_wall || '',
+        baseline: {
+          ts_wall: latest.baseline_ts_wall || '',
+        },
+        current: {
+          aggregate: {
+            totals: get(latest, ['current', 'totals'], {}),
+          },
+        },
+        delta: latest.delta || null,
+        history: {
+          entries: rows.length,
+        },
+        paths: {
+          history: ACTIVITY_SCALING_HISTORY_PATH,
+        },
+        fallback_source: 'activity_counts_history.jsonl',
+      };
+    }
+
+    function _parseEvalLatestOut(txt) {
+      const lines = String(txt || '').split(/\r?\n/);
+      const cases = [];
+      for (const line0 of lines) {
+        const line = String(line0 || '').trim();
+        const m = line.match(/^[-*]\s+([^:]+):\s+(PASS|FAIL)\s*$/i);
+        if (!m) continue;
+        cases.push({ id: String(m[1]).trim(), status: String(m[2]).toUpperCase() });
+      }
+      const pass = cases.filter(c => c.status === 'PASS').length;
+      const fail = cases.filter(c => c.status === 'FAIL').length;
+
+      function group(prefixes) {
+        const set = cases.filter(c => prefixes.some(p => String(c.id).startsWith(p)));
+        const p = set.filter(c => c.status === 'PASS').length;
+        const f = set.filter(c => c.status === 'FAIL').length;
+        return { total: set.length, pass: p, fail: f };
+      }
+
+      return {
+        total: cases.length,
+        pass,
+        fail,
+        groups: {
+          retrieval: group(['logic_retrieval_']),
+          constraints: group(['logic_constraint_', 'logic_runtime_constraint_', 'logic_runtime_spatial_constraint_']),
+          simulation: group(['logic_spatial_adapter', 'logic_runtime_constraint_', 'logic_runtime_spatial_constraint_', 'logic_constraint_']),
+          comprehension: group(['logic_concept_measure_', 'eval_concept_measure_']),
+          determinism: group(['determinism_suite', 'logic_deterministic_', 'logic_objectives_deterministic_', 'deterministic_']),
+        },
+        cases,
+      };
+    }
+
+    function _ratioStr(pass, total) {
+      if (!total) return '';
+      const r = Number(pass) / Number(total);
+      return String(Math.round(r * 1000) / 10) + '%';
+    }
+
+    function _pushScoreRow(rows, category, proxy, value, notes='') {
+      rows.push({ category, proxy, value, notes });
+    }
+
+    function _renderScorecardRows(rows, rawObj) {
+      const tbody = document.getElementById('scorecardTableBody');
+      if (tbody) {
+        tbody.innerHTML = '';
+        for (const r of rows) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${escapeHtml(String(r.category || ''))}</td>
+            <td>${escapeHtml(String(r.proxy || ''))}</td>
+            <td>${escapeHtml(String(r.value || ''))}</td>
+            <td>${escapeHtml(String(r.notes || ''))}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+      }
+
+      const rawEl = document.getElementById('scorecardRaw');
+      if (rawEl) {
+        try { rawEl.value = JSON.stringify(rawObj || {}, null, 2); }
+        catch { rawEl.value = String(rawObj || ''); }
+      }
+    }
+
+    function computeAndRenderScorecard() {
+      try {
+        setScorecardTag('computing...', '');
+
+        const windowHours = safeNumber(document.getElementById('scorecardWindowHours')?.value || 11);
+
+        // Inputs
+        const statusRows = _parseJsonlBestEffort(__scorecardLoaded.statusHistoryText);
+        const evalSummary = _parseEvalLatestOut(__scorecardLoaded.evalOutText);
+
+        // Latest status snapshot
+        const statusWithTs = statusRows
+          .map(r => ({ ts: _parseIsoOrNull(r.ts_utc), row: r }))
+          .filter(x => x.ts !== null);
+
+        statusWithTs.sort((a, b) => a.ts.getTime() - b.ts.getTime());
+        const latestStatus = statusWithTs.length ? statusWithTs[statusWithTs.length - 1] : null;
+
+        let speedValue = '';
+        let speedNotes = '';
+        if (latestStatus) {
+          const latestTs = latestStatus.ts;
+          const target = new Date(latestTs.getTime() - (windowHours * 3600 * 1000));
+          // Find closest timestamp at or before target; if none, fallback to oldest.
+          let baseline = null;
+          for (let i = statusWithTs.length - 1; i >= 0; i--) {
+            if (statusWithTs[i].ts.getTime() <= target.getTime()) {
+              baseline = statusWithTs[i];
+              break;
+            }
+          }
+          if (!baseline) baseline = statusWithTs[0] || null;
+
+          if (baseline && baseline.ts) {
+            const dtH = (latestTs.getTime() - baseline.ts.getTime()) / 3600000.0;
+            const curCycles = safeNumber(get(latestStatus.row, ['qty', 'activity_cycles'], 0));
+            const baseCycles = safeNumber(get(baseline.row, ['qty', 'activity_cycles'], 0));
+            const dCycles = curCycles - baseCycles;
+            const rate = (dtH > 0) ? (dCycles / dtH) : 0;
+            speedValue = `${Math.round(rate * 1000) / 1000} cycles/hour`;
+            speedNotes = `Δcycles=${Math.round(dCycles)} over ${Math.round(dtH * 1000) / 1000}h`;
+          }
+        }
+
+        // Context qty
+        let contextValue = '';
+        if (latestStatus) {
+          const q = (latestStatus.row && latestStatus.row.qty) ? latestStatus.row.qty : {};
+          const semantic = safeNumber(q.semantic_records);
+          const procedural = safeNumber(q.procedural_records);
+          const objectives = safeNumber(q.objectives);
+          const indexIds = safeNumber(q.index_ids);
+          contextValue = `semantic=${semantic}, procedural=${procedural}, objectives=${objectives}, index_ids=${indexIds}`;
+        }
+
+        // Sampling efficiency proxy (if metrics loaded)
+        const loadedMetrics = (window.__loaded && window.__loaded.metricsPayload) ? detectMetricsRoot(window.__loaded.metricsPayload) : null;
+        const fixedSamples = safeNumber(loadedMetrics?.resolution_fixed_samples_total);
+        const adaptiveSamples = safeNumber(loadedMetrics?.resolution_adaptive_samples_total);
+        let samplingValue = '';
+        if (fixedSamples > 0 && adaptiveSamples > 0) {
+          const savings = 1.0 - (adaptiveSamples / fixedSamples);
+          samplingValue = `${Math.round(savings * 1000) / 10}% savings (adaptive vs fixed)`;
+        } else if (fixedSamples > 0) {
+          samplingValue = `fixed_samples_total=${fixedSamples}`;
+        }
+
+        // Overall eval
+        const rows = [];
+        if (evalSummary.total > 0) {
+          _pushScoreRow(rows, 'Smart ability / correctness', 'eval_latest.out PASS rate', `${evalSummary.pass}/${evalSummary.total} (${_ratioStr(evalSummary.pass, evalSummary.total)})`, evalSummary.fail ? `FAIL=${evalSummary.fail}` : '');
+          const g = evalSummary.groups || {};
+          if (g.retrieval && g.retrieval.total) {
+            _pushScoreRow(rows, 'Recall relevance', 'retrieval cases PASS rate (logic_retrieval_*)', `${g.retrieval.pass}/${g.retrieval.total} (${_ratioStr(g.retrieval.pass, g.retrieval.total)})`, 'proxy: retrieval quality');
+          } else {
+            _pushScoreRow(rows, 'Recall relevance', 'retrieval cases PASS rate (logic_retrieval_*)', 'n/a', 'no retrieval cases found in eval output');
+          }
+          if (g.constraints && g.constraints.total) {
+            _pushScoreRow(rows, 'Simulation / constraints', 'constraint/runtime cases PASS rate', `${g.constraints.pass}/${g.constraints.total} (${_ratioStr(g.constraints.pass, g.constraints.total)})`, 'proxy: constraint adherence');
+          }
+          if (g.comprehension && g.comprehension.total) {
+            _pushScoreRow(rows, 'Comprehension', 'concept-measure cases PASS rate', `${g.comprehension.pass}/${g.comprehension.total} (${_ratioStr(g.comprehension.pass, g.comprehension.total)})`, 'proxy: stable parsing/measurement');
+          }
+          if (g.determinism && g.determinism.total) {
+            _pushScoreRow(rows, 'Determinism', 'determinism-related cases PASS rate', `${g.determinism.pass}/${g.determinism.total} (${_ratioStr(g.determinism.pass, g.determinism.total)})`, 'proxy: repeatability');
+          }
+        } else {
+          _pushScoreRow(rows, 'Smart ability / correctness', 'eval_latest.out PASS rate', 'n/a', 'load/fetch TemporaryQueue/eval_latest.out first');
+        }
+
+        _pushScoreRow(rows, 'Speed', 'activity_cycles/hour (status_history.jsonl)', speedValue || 'n/a', speedNotes || 'load/fetch TemporaryQueue/status_history.jsonl first');
+        _pushScoreRow(rows, 'Context qty', 'latest counts (status_history.jsonl)', contextValue || 'n/a', latestStatus ? `ts=${latestStatus.ts.toISOString()}` : '');
+        _pushScoreRow(rows, 'Verifier efficiency', 'sampling counters (loaded metrics)', samplingValue || 'n/a', samplingValue ? '' : 'load metrics on left or use Try Fetch Defaults');
+
+        const rawObj = {
+          window_hours: windowHours,
+          inputs: {
+            status_history_lines: statusRows.length,
+            eval_cases_parsed: evalSummary.total,
+            metrics_loaded: Boolean(loadedMetrics),
+          },
+          derived: {
+            speed: { value: speedValue, notes: speedNotes },
+            context: contextValue,
+            sampling: samplingValue,
+            eval: {
+              total: evalSummary.total,
+              pass: evalSummary.pass,
+              fail: evalSummary.fail,
+              groups: evalSummary.groups,
+            },
+          },
+        };
+
+        _renderScorecardRows(rows, rawObj);
+        setScorecardTag('ok', 'good');
+      } catch (e) {
+        setScorecardTag('error', 'bad');
+        const rawEl = document.getElementById('scorecardRaw');
+        if (rawEl) rawEl.value = String(e && e.message ? e.message : e);
+      }
+    }
+
+    async function loadScorecardInputsFromPickers() {
+      setScorecardTag('loading...', '');
+      try {
+        const sh = document.getElementById('scorecardStatusHistoryFile');
+        const ev = document.getElementById('scorecardEvalOutFile');
+
+        if (sh && sh.files && sh.files[0]) {
+          __scorecardLoaded.statusHistoryText = await sh.files[0].text();
+        }
+        if (ev && ev.files && ev.files[0]) {
+          __scorecardLoaded.evalOutText = await ev.files[0].text();
+        }
+        setScorecardTag('loaded', 'good');
+      } catch (e) {
+        setScorecardTag('load failed', 'bad');
+        const rawEl = document.getElementById('scorecardRaw');
+        if (rawEl) rawEl.value = String(e && e.message ? e.message : e);
+      }
+    }
+
+    async function fetchScorecardInputsOnce() {
+      setScorecardTag('fetching...', '');
+      const base = _getBase();
+      try {
+        // status_history.jsonl
+        {
+          const url = `${base}/${STATUS_HISTORY_PATH}`;
+          const r = await fetch(url, { cache: 'no-store' });
+          if (!r.ok) throw new Error(`status_history fetch HTTP ${r.status}`);
+          __scorecardLoaded.statusHistoryText = await r.text();
+        }
+        // eval output
+        {
+          let evalText = '';
+          let lastErr = null;
+          for (const path0 of [EVAL_LATEST_OUT_PATH, EVAL_OUT_FALLBACK_PATH]) {
+            const url = `${base}/${path0}`;
+            const r = await fetch(url, { cache: 'no-store' });
+            if (r.ok) {
+              evalText = await r.text();
+              break;
+            }
+            lastErr = new Error(`${path0} fetch HTTP ${r.status}`);
+          }
+          if (!evalText) throw lastErr || new Error('eval output fetch failed');
+          __scorecardLoaded.evalOutText = evalText;
+        }
+        setScorecardTag('fetched', 'good');
+      } catch (e) {
+        setScorecardTag('fetch failed', 'bad');
+        const rawEl = document.getElementById('scorecardRaw');
+        if (rawEl) {
+          rawEl.value = [
+            'Could not fetch scorecard inputs in server mode.',
+            '',
+            'If you opened this dashboard via file://, the browser cannot fetch local files.',
+            'Load files using the pickers instead:',
+            '- TemporaryQueue/status_history.jsonl',
+            '- run_eval.out',
+            '- TemporaryQueue/eval_latest.out',
+            '',
+            `Error: ${String(e && e.message ? e.message : e)}`,
+          ].join('\n');
+        }
+      }
+    }
+
+    function setHardwarePreflightTag(text, kind='') {
+      const el = document.getElementById('hardwarePreflightTag');
+      if (!el) return;
+      el.textContent = text;
+      el.className = 'tag' + (kind ? (' ' + kind) : '');
+    }
+
+    function setMetricsTableTag(text, kind='') {
+      const el = document.getElementById('metricsTableTag');
+      if (!el) return;
+      el.textContent = text;
+      el.className = 'tag' + (kind ? (' ' + kind) : '');
+    }
+
+    function setMirrorTierTag(text, kind='') {
+      const el = document.getElementById('mirrorTierTag');
+      if (!el) return;
+      el.textContent = text;
+      el.className = 'tag' + (kind ? (' ' + kind) : '');
+    }
+
+    function setStatus(text, kind='') {
+      const el = document.getElementById('status');
+      if (!el) return;
+      el.textContent = text;
+      el.className = 'tag' + (kind ? (' ' + kind) : '');
+    }
+
+    function setAutofetchNotice(html, kind='') {
+      const el = document.getElementById('autofetchNotice');
+      if (!el) return;
+      if (!html) {
+        el.style.display = 'none';
+        el.className = 'autofetchNotice';
+        el.innerHTML = '';
+        return;
+      }
+      el.style.display = 'block';
+      el.className = 'autofetchNotice' + (kind ? (' ' + kind) : '');
+      el.innerHTML = html;
+    }
+
+    function getServerModeUrl() {
+      try {
+        const name = (window.location.pathname || '').split(/[\\/]/).pop() || 'dashboard.html';
+        return `http://127.0.0.1:8000/${encodeURIComponent(name)}${window.location.search || ''}`;
+      } catch {
+        return 'http://127.0.0.1:8000/dashboard.html';
+      }
+    }
+
+    function setInitialPlaceholders(messageOverride='') {
+      const msg = messageOverride || 'Load data (left) then click “Render Dashboard”, or click “Try Fetch Defaults (server mode)”.';
+      const ids = ['chartCounters', 'chartHistogram', 'chartPie'];
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        if (String(el.innerHTML || '').trim()) continue;
+        el.innerHTML = `<div class="hint">${msg}</div>`;
+      }
+    }
+
+    function safeNumber(x) {
+      const n = Number(x);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function renderKeyValueRows(tbody, rows, emptyMessage) {
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      if (!rows || !rows.length) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="2">${escapeHtml(emptyMessage || 'no data')}</td>`;
+        tbody.appendChild(tr);
+        return;
+      }
+      for (const [field, value] of rows) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${escapeHtml(String(field || ''))}</td><td>${escapeHtml(String(value ?? ''))}</td>`;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function extractMirrorTier(record) {
+      const rs = get(record, ['relational_state'], null)
+        || get(record, ['record', 'relational_state'], null)
+        || get(record, ['data', 'relational_state'], null);
+      const derived = get(rs || {}, ['derived'], null);
+      return {
+        summary: get(derived || {}, ['mirror_schedule_summary'], null),
+        summaryHash: get(derived || {}, ['mirror_schedule_summary_hash'], ''),
+        delta: get(derived || {}, ['mirror_schedule_delta'], null),
+        deltaHash: get(derived || {}, ['mirror_schedule_delta_hash'], ''),
+        deltaNoopReason: get(derived || {}, ['mirror_schedule_delta_noop_reason'], ''),
+      };
+    }
+
+    function renderMirrorTier(record) {
+      const rawEl = document.getElementById('mirrorTierRaw');
+      if (rawEl) {
+        try {
+          rawEl.value = JSON.stringify(record || {}, null, 2);
+        } catch {
+          rawEl.value = String(record || '');
+        }
+      }
+
+      const summaryBody = document.getElementById('mirrorTierSummaryBody');
+      const deltaBody = document.getElementById('mirrorTierDeltaBody');
+      const payload = extractMirrorTier(record || {});
+      const summary = payload.summary && typeof payload.summary === 'object' ? payload.summary : null;
+      const delta = payload.delta && typeof payload.delta === 'object' ? payload.delta : null;
+
+      if (!summary) {
+        renderKeyValueRows(summaryBody, [], 'mirror_schedule_summary not found');
+      } else {
+        const candidates = Array.isArray(summary.candidate_actions) ? summary.candidate_actions.join(', ') : summary.candidate_actions;
+        const rows = [
+          ['mirror_schedule_summary_hash', payload.summaryHash || ''],
+          ['selected_action_id', summary.selected_action_id],
+          ['selection_reason', summary.selection_reason],
+          ['policy_rule_id', summary.policy_rule_id],
+          ['candidate_count', summary.candidate_count],
+          ['candidate_actions', candidates],
+          ['policy_snapshot_hash', summary.policy_snapshot_hash],
+          ['selection_score', summary.selection_score],
+          ['objective_alignment', summary.objective_alignment],
+        ];
+        renderKeyValueRows(summaryBody, rows, '');
+      }
+
+      if (!delta) {
+        const msg = payload.deltaNoopReason ? `mirror_schedule_delta missing (${payload.deltaNoopReason})` : 'mirror_schedule_delta not found';
+        renderKeyValueRows(deltaBody, [], msg);
+      } else {
+        const rows = [
+          ['mirror_schedule_delta_hash', payload.deltaHash || ''],
+          ['prior_summary_hash', delta.prior_summary_hash],
+          ['current_summary_hash', delta.current_summary_hash],
+          ['candidate_count_delta', delta.candidate_count_delta],
+          ['selection_reason_change', delta.selection_reason_change],
+          ['policy_hash_change', delta.policy_hash_change],
+          ['selection_score_delta', delta.selection_score_delta],
+          ['selection_score_change', delta.selection_score_change],
+          ['objective_alignment_change', delta.objective_alignment_change],
+          ['change_count', delta.change_count],
+          ['change_ratio', delta.change_ratio],
+          ['advisory_tag', delta.advisory_tag],
+        ];
+        if (payload.deltaNoopReason) {
+          rows.push(['mirror_schedule_delta_noop_reason', payload.deltaNoopReason]);
+        }
+        renderKeyValueRows(deltaBody, rows, '');
+      }
+    }
+
+    function loadMirrorTierFromPicker() {
+      const input = document.getElementById('mirrorTierFile');
+      if (!input || !input.files || !input.files[0]) return;
+      const file = input.files[0];
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const payload = JSON.parse(String(reader.result || '{}'));
+          renderMirrorTier(payload);
+          setMirrorTierTag('loaded', 'good');
+        } catch (e) {
+          setMirrorTierTag('invalid JSON', 'bad');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    async function fetchMirrorTierFromServer() {
+      setMirrorTierTag('fetching...', '');
+      const base = _getBase();
+      const pathEl = document.getElementById('mirrorTierPath');
+      let path = pathEl ? String(pathEl.value || '').trim() : '';
+      if (!path || path.endsWith('/')) {
+        setMirrorTierTag('path missing', 'bad');
+        const rawEl = document.getElementById('mirrorTierRaw');
+        if (rawEl) {
+          rawEl.value = 'Enter a specific semantic record path (example: LongTermStore/Semantic/demo020.json).';
+        }
+        return;
+      }
+      path = path.replace(/\\/g, '/').replace(/^\/+/, '');
+      const url = `${base}/${path}`;
+      try {
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const payload = await r.json();
+        renderMirrorTier(payload);
+        setMirrorTierTag('fetched', 'good');
+      } catch (e) {
+        setMirrorTierTag('fetch failed', 'bad');
+        const rawEl = document.getElementById('mirrorTierRaw');
+        if (rawEl) {
+          rawEl.value = [
+            'Could not fetch mirror-tier record in server mode.',
+            '',
+            'If you opened this dashboard via file://, the browser cannot fetch local files.',
+            'Load the semantic record using the picker instead.',
+            '',
+            `Error: ${String(e && e.message ? e.message : e)}`,
+          ].join('\n');
+        }
+      }
+    }
+
+    function renderHardwarePreflight(rep) {
+      const rawEl = document.getElementById('hardwarePreflightRaw');
+      if (rawEl) {
+        try {
+          rawEl.value = JSON.stringify(rep || {}, null, 2);
+        } catch (e) {
+          rawEl.value = String(rep || '');
+        }
+      }
+
+      const body = document.getElementById('hardwarePreflightTableBody');
+      if (!body) return;
+      const v = Array.isArray(rep?.violations) ? rep.violations.length : 0;
+      const disk = rep?.disk || {};
+      const ram = rep?.ram || {};
+      const ts = String(rep?.ts || '');
+      const ok = Boolean(rep?.ok);
+      const freePct = (disk?.free_percent !== undefined && disk?.free_percent !== null) ? Number(disk.free_percent).toFixed(2) : '';
+      const freeB = (disk?.free !== undefined && disk?.free !== null) ? String(disk.free) : '';
+      const ramAvail = (ram?.available !== undefined && ram?.available !== null) ? String(ram.available) : '';
+
+      body.innerHTML = '';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${escapeHtml(ts)}</td>
+        <td>${ok ? '<span class="tag good">ok</span>' : '<span class="tag bad">fail</span>'}</td>
+        <td>${v}</td>
+        <td>${escapeHtml(String(freePct))}</td>
+        <td>${escapeHtml(String(freeB))}</td>
+        <td>${escapeHtml(String(ramAvail))}</td>
+      `;
+      body.appendChild(tr);
+    }
+
+    async function fetchHardwarePreflightOnce() {
+      setHardwarePreflightTag('fetching...', '');
+      const base = _getBase();
+      const url = `${base}/${HARDWARE_PREFLIGHT_PATH}`;
+      try {
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const rep = await r.json();
+        renderHardwarePreflight(rep);
+        setHardwarePreflightTag('fetched', 'good');
+      } catch (e) {
+        setHardwarePreflightTag('fetch failed', 'bad');
+        const rawEl = document.getElementById('hardwarePreflightRaw');
+        if (rawEl) rawEl.value = String(e && e.message ? e.message : e);
+      }
+    }
+
+    async function generateAndFetchHardwarePreflight() {
+      setHardwarePreflightTag('generating...', '');
+      try {
+        const base = _getBase();
+        const url = `${base}/api/hardware_preflight`;
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'X-AI-Algorithms-Dashboard': '1',
+          },
+          body: JSON.stringify({ reason: 'dashboard_hardware_preflight' }),
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        await fetchHardwarePreflightOnce();
+      } catch (e) {
+        setHardwarePreflightTag('generate failed', 'bad');
+        const rawEl = document.getElementById('hardwarePreflightRaw');
+        if (rawEl) {
+          rawEl.value = [
+            'Could not generate hardware preflight via the dashboard server.',
+            '',
+            'If you opened this dashboard via file://, the browser cannot execute Python.',
+            'Run one of:',
+            '- VS Code task: AI Brain: preflight report (hardware limits JSON)',
+            '- Repo-root command: .venv/Scripts/python.exe scripts/hardware_limits_check.py --out TemporaryQueue/hardware_preflight.json --json',
+            '',
+            `Error: ${String(e && e.message ? e.message : e)}`
+          ].join('\n');
+        }
+      }
+    }
+
+    function loadHardwarePreflightFromPicker() {
+      const input = document.getElementById('hardwarePreflightFile');
+      if (!input || !input.files || !input.files[0]) return;
+      const file = input.files[0];
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const rep = JSON.parse(String(reader.result || '{}'));
+          renderHardwarePreflight(rep);
+          setHardwarePreflightTag('loaded', 'ok');
+        } catch (e) {
+          setHardwarePreflightTag('invalid JSON', 'bad');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function get(obj, path, fallback=null) {
+      try {
+        let cur = obj;
+        for (const key of path) {
+          if (cur == null) return fallback;
+          cur = cur[key];
+        }
+        return (cur === undefined) ? fallback : cur;
+      } catch {
+        return fallback;
+      }
+    }
+
+    function detectMetricsRoot(payload) {
+      if (payload && typeof payload === 'object') {
+        const m = payload.metrics;
+        if (m && typeof m === 'object') return m;
+      }
+      return payload;
+    }
+
+    function setLiveSnapshotStatus(text, kind='') {
+      const el = document.getElementById('liveSnapshotStatus');
+      if (!el) return;
+      el.textContent = text;
+      el.className = 'tag' + (kind ? (' ' + kind) : '');
+    }
+
+    function setOpsStatusTag(text, kind='') {
+      const el = document.getElementById('opsStatusTag');
+      if (!el) return;
+      el.textContent = text;
+      el.className = 'tag' + (kind ? (' ' + kind) : '');
+    }
+
+    function setActivityScalingTag(text, kind='') {
+      const el = document.getElementById('activityScalingTag');
+      if (!el) return;
+      el.textContent = text;
+      el.className = 'tag' + (kind ? (' ' + kind) : '');
+    }
+
+    function setLiveHealthTag(text, kind='') {
+      const el = document.getElementById('liveHealthTag');
+      if (!el) return;
+      el.textContent = text;
+      el.className = 'tag' + (kind ? (' ' + kind) : '');
+    }
+
+    function setCreateTierFixtureTag(text, kind='') {
+      const el = document.getElementById('createTierFixtureTag');
+      if (!el) return;
+      el.textContent = text;
+      el.className = 'tag' + (kind ? (' ' + kind) : '');
+    }
+
+    function renderActivityScaling(payload) {
+      const rawEl = document.getElementById('activityScalingRaw');
+      if (rawEl) {
+        try { rawEl.value = JSON.stringify(payload, null, 2); } catch { rawEl.value = ''; }
+      }
+
+      const tbody = document.getElementById('activityScalingTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const ts = String(payload && payload.ts_wall ? payload.ts_wall : '');
+      const baselineTs = String(get(payload, ['baseline', 'ts_wall'], '') || '');
+      const entries = get(payload, ['history', 'entries'], null);
+
+      const baseTotal = get(payload, ['delta', 'totals', 'baseline_completed_total'], null);
+      const curTotal = get(payload, ['delta', 'totals', 'current_completed_total'], null);
+      const ratio = get(payload, ['delta', 'totals', 'completed_total_ratio'], null);
+
+      let deltaTotal = '';
+      try {
+        if (baseTotal !== null && baseTotal !== undefined && curTotal !== null && curTotal !== undefined) {
+          deltaTotal = String(Number(curTotal) - Number(baseTotal));
+        }
+      } catch {
+        deltaTotal = '';
+      }
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${escapeHtml(ts)}</td>
+        <td>${escapeHtml(baselineTs)}</td>
+        <td>${entries === null || entries === undefined ? '' : String(entries)}</td>
+        <td>${baseTotal === null || baseTotal === undefined ? '' : String(baseTotal)}</td>
+        <td>${curTotal === null || curTotal === undefined ? '' : String(curTotal)}</td>
+        <td>${escapeHtml(deltaTotal)}</td>
+        <td>${ratio === null || ratio === undefined ? '' : String(Math.round(Number(ratio) * 1000) / 1000)}</td>
+      `;
+      tbody.appendChild(tr);
+
+      const ok = Boolean(get(payload, ['baseline'], null)) && Boolean(get(payload, ['current', 'aggregate'], null));
+      setActivityScalingTag(ok ? 'ok' : 'needs attention', ok ? 'good' : 'bad');
+    }
+
+    async function fetchActivityScalingOnce() {
+      setActivityScalingTag('fetching...', '');
+      const base = _getBase();
+      const url = `${base}/${ACTIVITY_SCALING_PATH}`;
+      try {
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const payload = await r.json();
+        renderActivityScaling(payload);
+      } catch (e) {
+        try {
+          const historyUrl = `${base}/${ACTIVITY_SCALING_HISTORY_PATH}`;
+          const hr = await fetch(historyUrl, { cache: 'no-store' });
+          if (!hr.ok) throw new Error(`HTTP ${hr.status}`);
+          const payload = _buildActivityScalingPayloadFromHistory(_parseJsonlBestEffort(await hr.text()));
+          if (!payload) throw new Error('activity scaling history is empty');
+          renderActivityScaling(payload);
+          setActivityScalingTag('history fallback', 'warn');
+        } catch (historyErr) {
+          setActivityScalingTag('fetch failed', 'bad');
+          const rawEl = document.getElementById('activityScalingRaw');
+          if (rawEl) {
+            rawEl.value = [
+              String(e && e.message ? e.message : e),
+              '',
+              'Fallback history fetch also failed:',
+              String(historyErr && historyErr.message ? historyErr.message : historyErr),
+            ].join('\n');
+          }
+        }
+      }
+    }
+
+    async function generateAndFetchActivityScaling() {
+      setActivityScalingTag('generating...', '');
+      const base = _getBase();
+      const url = `${base}/api/activity_scaling_log`;
+      try {
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'X-AI-Algorithms-Dashboard': '1',
+          },
+          body: JSON.stringify({ reason: 'dashboard_generate_activity_scaling' }),
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        await fetchActivityScalingOnce();
+      } catch (e) {
+        setActivityScalingTag('generate failed', 'bad');
+        const rawEl = document.getElementById('activityScalingRaw');
+        if (rawEl) {
+          rawEl.value = [
+            'Could not generate activity scaling via the dashboard server.',
+            '',
+            'If you opened this dashboard via file://, the browser cannot execute Python.',
+            'Run one of:',
+            '- VS Code task: AI Brain: activity scaling log (baseline+append)',
+            '- Repo-root command: .venv/Scripts/python.exe scripts/activity_scaling_log.py --init-baseline --append',
+            '',
+            `Error: ${String(e && e.message ? e.message : e)}`
+          ].join('\n');
+        }
+      }
+    }
+
+    async function loadActivityScalingFromPicker() {
+      const input = document.getElementById('activityScalingFile');
+      if (!input || !input.files || !input.files[0]) return;
+      setActivityScalingTag('loading...', '');
+      try {
+        const txt = await input.files[0].text();
+        const payload = JSON.parse(txt);
+        renderActivityScaling(payload);
+      } catch (e) {
+        setActivityScalingTag('load failed', 'bad');
+      }
+    }
+
+    async function generateMetricsTable() {
+      setMetricsTableTag('generating...', '');
+      const rawEl = document.getElementById('metricsTableRaw');
+
+      const base = _getBase();
+      const url = `${base}/api/metrics_table`;
+      try {
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'X-AI-Algorithms-Dashboard': '1',
+          },
+          cache: 'no-store',
+        });
+
+        const payload = await r.json().catch(() => ({}));
+        const out = (payload && (payload.stdout || payload.stderr)) ? String(payload.stdout || payload.stderr) : JSON.stringify(payload || {}, null, 2);
+        if (rawEl) rawEl.value = out;
+
+        if (r.ok && payload && payload.ok === true) {
+          setMetricsTableTag('ok', 'good');
+        } else {
+          setMetricsTableTag('failed', 'bad');
+        }
+      } catch (e) {
+        if (rawEl) {
+          rawEl.value = [
+            'Could not call /api/metrics_table (server mode).',
+            '',
+            'If you opened this dashboard via file://, the browser cannot execute Python.',
+            'Run one of:',
+            '- VS Code task: AI Brain: metrics table',
+            '- Repo-root command: .venv/Scripts/python.exe scripts/metrics_table.py',
+            '',
+            `Error: ${String(e && e.message ? e.message : e)}`
+          ].join('\n');
+        }
+        setMetricsTableTag('error', 'bad');
+      }
+    }
+
+    function _parseIntSafe(x, dflt) {
+      const n = parseInt(String(x || '').trim(), 10);
+      return Number.isFinite(n) ? n : dflt;
+    }
+
+    function _fmtBool(b) {
+      return b ? 'yes' : 'no';
+    }
+
+    function _getBase() {
+      const baseEl = document.getElementById('basePath');
+      let base = baseEl ? String(baseEl.value || '.').trim() : '.';
+      if (!base) base = '.';
+      base = base.replace(/\/+$/g, '');
+      return base;
+    }
+
+    function renderLiveSnapshot(snapshot) {
+      const rawEl = document.getElementById('liveSnapshotRaw');
+      if (rawEl) {
+        try {
+          rawEl.value = JSON.stringify(snapshot, null, 2);
+        } catch {
+          rawEl.value = '';
+        }
+      }
+
+      const tbody = document.getElementById('liveSnapshotTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const ts = String(snapshot && snapshot.ts ? snapshot.ts : '');
+      const lockExists = Boolean(get(snapshot, ['lock', 'exists'], false));
+
+      const tempFiles = safeNumber(get(snapshot, ['dirs', 'temporary', 'files'], 0));
+      const activeFiles = safeNumber(get(snapshot, ['dirs', 'active', 'files'], 0));
+      const holdingFiles = safeNumber(get(snapshot, ['dirs', 'holding', 'files'], 0));
+
+      const metricsRunExists = Boolean(get(snapshot, ['files', 'metrics_run', 'exists'], false));
+      const metricsCompareExists = Boolean(get(snapshot, ['files', 'metrics_compare', 'exists'], false));
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${ts}</td>
+        <td>${_fmtBool(lockExists)}</td>
+        <td>${Math.trunc(tempFiles)}</td>
+        <td>${Math.trunc(activeFiles)}</td>
+        <td>${Math.trunc(holdingFiles)}</td>
+        <td>${_fmtBool(metricsRunExists)}</td>
+        <td>${_fmtBool(metricsCompareExists)}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function _formatAgeSeconds(value) {
+      if (value === null || value === undefined || value === '') return '';
+      const n = Number(value);
+      if (!Number.isFinite(n)) return String(value);
+      if (n >= 3600) return `${Math.round(n / 360) / 10}h`;
+      if (n >= 60) return `${Math.round(n / 6) / 10}m`;
+      return `${Math.round(n * 10) / 10}s`;
+    }
+
+    function _formatMaybeBool(value) {
+      if (value === null || value === undefined) return 'unknown';
+      return value ? 'yes' : 'no';
+    }
+
+    function renderOpsStatusOperatorReadiness(payload) {
+      const el = document.getElementById('opsStatusOperatorReadiness');
+      if (!el) return { guardNeedsAttention: false, readinessBlocked: false };
+
+      const opsMonitorOk = Boolean(get(payload, ['ops_monitor', 'ok'], false));
+      const opsMonitorAge = get(payload, ['ops_monitor', 'live_age_sec'], null);
+      const opsMonitorThreshold = get(payload, ['ops_monitor', 'live_threshold_sec'], get(payload, ['ops_monitor', 'threshold_sec'], null));
+      const guardSummary = opsMonitorOk
+        ? 'ops monitor heartbeat is fresh'
+        : `ops monitor heartbeat is stale or down${opsMonitorAge !== null && opsMonitorAge !== undefined ? ` (age=${_formatAgeSeconds(opsMonitorAge)}` : ''}${opsMonitorThreshold !== null && opsMonitorThreshold !== undefined ? `, threshold=${_formatAgeSeconds(opsMonitorThreshold)}` : ''}${opsMonitorAge !== null || opsMonitorThreshold !== null ? ')' : ''}`;
+
+      const hardwareTs = String(get(payload, ['hardware_preflight', 'summary', 'ts'], '') || 'unknown');
+      const hardwareOk = get(payload, ['hardware_preflight', 'summary', 'ok'], null);
+      const signalSource = String(get(payload, ['runtime', 'simulation_signal_source'], '') || 'unknown');
+      const blenderProcessRunning = get(payload, ['runtime', 'blender_process_running'], null);
+      const purpose = get(payload, ['runtime', 'purpose_carrier_runtime'], {}) || {};
+      const readyForLiveSimulation = get(purpose, ['preparation_state', 'ready_for_live_simulation'], null);
+      const readinessStatus = String(get(purpose, ['preparation_state', 'readiness_state', 'status'], '') || 'unknown');
+      const measurementStatus = String(get(purpose, ['measurement_evidence_summary', 'status'], '') || 'unknown');
+      const schemaStatus = String(get(purpose, ['measurement_schema_trace_summary', 'status'], '') || 'unknown');
+      const validationRetentionStatus = String(get(purpose, ['validation_retention_evidence_summary', 'status'], '') || 'unknown');
+      const groundingVerdict = String(get(purpose, ['reference_grounding_verification', 'grounding_verdict'], '') || 'unknown');
+      const readinessBlocked = readyForLiveSimulation === false || measurementStatus === 'missing' || schemaStatus === 'missing';
+
+      el.textContent = [
+        `Operator freshness/readiness: ${guardSummary}.`,
+        `Hardware preflight: ok=${_formatMaybeBool(hardwareOk)}, ts=${hardwareTs}.`,
+        `Runtime signal/process: signal_source=${signalSource}, blender_process_running=${_formatMaybeBool(blenderProcessRunning)}.`,
+        `Current-record readiness: ready_for_live_simulation=${_formatMaybeBool(readyForLiveSimulation)}, readiness=${readinessStatus}, measurement=${measurementStatus}, schema=${schemaStatus}, validation_retention=${validationRetentionStatus}, reference_grounding=${groundingVerdict}.`,
+        'Workflow pie note: compare source path and generated_at before treating a pie payload as current; TemporaryQueue is the live dashboard attachment, while LongTermStore can retain an older copy.'
+      ].join(' ');
+
+      return { guardNeedsAttention: !opsMonitorOk, readinessBlocked };
+    }
+
+    function renderOpsStatus(payload) {
+      const rawEl = document.getElementById('opsStatusRaw');
+      if (rawEl) {
+        try { rawEl.value = JSON.stringify(payload, null, 2); } catch { rawEl.value = ''; }
+      }
+
+      const tbody = document.getElementById('opsStatusTableBody');
+      const activityEl = document.getElementById('opsStatusActivity');
+      const surfaceSummaryEl = document.getElementById('opsStatusSurfaceSummary');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const ts = String(payload && payload.ts ? payload.ts : '');
+      const running = Boolean(get(payload, ['runtime', 'running'], false));
+      const runtimeState = String(get(payload, ['runtime', 'state'], '') || '');
+      const controlPlaneRunning = get(payload, ['runtime', 'control_plane_running'], get(payload, ['runtime', 'daemon_alive'], null));
+      const stopReason = get(payload, ['runtime', 'stop_reason'], null);
+      const activityText = get(payload, ['runtime', 'activity_text'], null);
+      const pingOk = Boolean(get(payload, ['server', 'ping', 'ok'], false));
+      const pid = get(payload, ['server', 'pid'], null);
+      const watcherOk = Boolean(get(payload, ['watcher', 'ok'], false));
+      const liveAge = get(payload, ['watcher', 'live_age_sec'], null);
+      const paused = get(payload, ['orchestrator', 'paused'], null);
+      const opsOk = Boolean(get(payload, ['ok'], false));
+      const surfaceRunningCount = Math.trunc(safeNumber(get(payload, ['runtime_surfaces', 'running_count'], 0), 0));
+      const surfaceCount = Math.trunc(safeNumber(get(payload, ['runtime_surfaces', 'surface_count'], 0), 0));
+      const expectedAllStart = Math.trunc(safeNumber(get(payload, ['runtime_surfaces', 'expected_running_when_all_start'], 3), 3));
+      const expectedRunSurfaces = Math.trunc(safeNumber(get(payload, ['runtime_surfaces', 'expected_running_when_run_surfaces'], 4), 4));
+      const surfaces = Array.isArray(get(payload, ['runtime_surfaces', 'surfaces'], []))
+        ? get(payload, ['runtime_surfaces', 'surfaces'], []).filter((surface) => surface && typeof surface === 'object')
+        : [];
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${ts}</td>
+        <td>${_fmtBool(running)}</td>
+        <td>${escapeHtml(runtimeState)}</td>
+        <td>${controlPlaneRunning === null || controlPlaneRunning === undefined ? '' : _fmtBool(Boolean(controlPlaneRunning))}</td>
+        <td>${stopReason === null || stopReason === undefined ? '' : escapeHtml(String(stopReason))}</td>
+        <td>${_fmtBool(pingOk)}</td>
+        <td>${pid === null || pid === undefined ? '' : String(pid)}</td>
+        <td>${_fmtBool(watcherOk)}</td>
+        <td>${liveAge === null || liveAge === undefined ? '' : String(Math.round(Number(liveAge) * 1000) / 1000)}</td>
+        <td>${paused === null || paused === undefined ? '' : String(paused)}</td>
+        <td>${_fmtBool(opsOk)}</td>
+      `;
+      tbody.appendChild(tr);
+
+      if (activityEl) {
+        activityEl.textContent = activityText ? `Runtime activity: ${String(activityText)}` : 'Runtime activity text not available in the current ops payload.';
+      }
+      if (surfaceSummaryEl) {
+        const details = surfaces.map((surface) => {
+          const label = String(surface.label || surface.id || 'surface');
+          const runningText = surface.running ? 'up' : 'down';
+          const detail = String(surface.detail || '');
+          return `${label}=${runningText}${detail ? ` (${detail})` : ''}`;
+        });
+        surfaceSummaryEl.textContent = `Live runtime surfaces: ${surfaceRunningCount}/${surfaceCount} running. Expected when using "AI Brain: all start": ${expectedAllStart}. Expected when using "AI Brain: run surfaces": ${expectedRunSurfaces}. ${details.join(' | ')}`;
+      }
+
+      const readinessSummary = renderOpsStatusOperatorReadiness(payload);
+
+      renderCreateTierProposalReview(payload);
+
+      const tagText = readinessSummary.guardNeedsAttention
+        ? `${runtimeState || 'runtime'} / guard stale`
+        : (runtimeState || (opsOk ? 'ok' : 'needs attention'));
+      const tagKind = readinessSummary.guardNeedsAttention || readinessSummary.readinessBlocked
+        ? 'warn'
+        : (running ? 'good' : ((opsOk && runtimeState === 'paused') ? '' : (opsOk ? 'good' : 'bad')));
+      setOpsStatusTag(tagText, tagKind);
+    }
+
+    function normalizeCreateTierProposalReview(review) {
+      if (!review || typeof review !== 'object') return null;
+
+      // Freeze the dashboard read path to the fields already emitted by ops_status_report.py.
+      const sourceRows = Array.isArray(review.proposal_reviews) ? review.proposal_reviews : [];
+      const rows = sourceRows.map((row) => {
+        const requiredGateNames = Array.isArray(row?.required_gate_names)
+          ? row.required_gate_names.map((value) => String(value))
+          : [];
+        const satisfiedGateNames = Array.isArray(row?.satisfied_gate_names)
+          ? row.satisfied_gate_names.map((value) => String(value))
+          : [];
+        const refusalReasons = Array.isArray(row?.refusal_reasons)
+          ? row.refusal_reasons.map((value) => String(value))
+          : [];
+        const stageResults = row?.stage_results && typeof row.stage_results === 'object'
+          ? { ...row.stage_results }
+          : {};
+        const stageReasonMap = row?.stage_reason_map && typeof row.stage_reason_map === 'object'
+          ? { ...row.stage_reason_map }
+          : {};
+
+        return {
+          accepted: Boolean(row?.accepted),
+          authoritative: Boolean(row?.authoritative),
+          blocking_stage: String(row?.blocking_stage || ''),
+          current_serving: Boolean(row?.current_serving),
+          factory_id: String(row?.factory_id || ''),
+          family_template_id: String(row?.family_template_id || ''),
+          planned_group_count: Math.trunc(safeNumber(row?.planned_group_count, 0)),
+          planned_instance_count: Math.trunc(safeNumber(row?.planned_instance_count, 0)),
+          refusal_reasons: refusalReasons,
+          required_gate_names: requiredGateNames,
+          runtime_gate_mode: String(row?.runtime_gate_mode || ''),
+          satisfied_gate_names: satisfiedGateNames,
+          stage_reason_map: stageReasonMap,
+          stage_results: stageResults,
+        };
+      });
+
+      const acceptedCount = Math.trunc(
+        safeNumber(review.accepted_proposal_count, rows.filter((row) => row.accepted).length)
+      );
+      const blockedCount = Math.trunc(
+        safeNumber(review.blocked_proposal_count, rows.filter((row) => !row.accepted).length)
+      );
+      const proposalCount = Math.trunc(safeNumber(review.proposal_review_count, rows.length));
+
+      return {
+        accepted_proposal_count: acceptedCount,
+        blocked_proposal_count: blockedCount,
+        proposal_review_count: proposalCount,
+        proposal_reviews: rows,
+      };
+    }
+
+    function setProposalSummaryCard(cardEl, valueEl, text, kind='') {
+      if (cardEl) cardEl.className = `proposalSummaryCard${kind ? ` ${kind}` : ''}`;
+      if (valueEl) valueEl.textContent = String(text || '');
+    }
+
+    function formatCreateTierBlockingMix(rows) {
+      const blockedRows = rows.filter((row) => !row.accepted);
+      if (!blockedRows.length) return 'No blocked proposal rows are visible.';
+
+      const counts = new Map();
+      for (const row of blockedRows) {
+        const key = row.blocking_stage || 'unclassified';
+        counts.set(key, (counts.get(key) || 0) + 1);
+      }
+
+      return Array.from(counts.entries())
+        .sort((left, right) => String(left[0]).localeCompare(String(right[0])))
+        .map(([stage, count]) => `${stage}=${count}`)
+        .join(' | ');
+    }
+
+    function describeCreateTierProposalRow(row) {
+      const refusalReasons = Array.isArray(row?.refusal_reasons) ? row.refusal_reasons : [];
+      const capacityBlocked = refusalReasons.includes('factory_at_capacity');
+      const blockingStage = String(row?.blocking_stage || '');
+
+      if (row?.accepted) {
+        return 'Accepted in the current dry-run review. This row remains informational only.';
+      }
+      if (blockingStage === 'initial_selection' && capacityBlocked) {
+        return 'Blocked at initial_selection because the current factory is at capacity. This does not imply serving-runtime failure.';
+      }
+      if (blockingStage === 'initial_selection') {
+        return 'Blocked at initial_selection before runtime-gate review could approve the dry-run proposal.';
+      }
+      if (blockingStage === 'runtime_gate') {
+        return 'Blocked at runtime_gate because the required dry-run validation gates are not yet satisfied.';
+      }
+      return 'Blocked in the current dry-run review. See the stage details below for the bounded refusal evidence.';
+    }
+
+    function createTierProposalRowClassName(row) {
+      if (row?.accepted) return 'createTierProposalRow acceptedRow';
+      if (row?.blocking_stage === 'initial_selection') return 'createTierProposalRow initialSelection';
+      if (row?.blocking_stage === 'runtime_gate') return 'createTierProposalRow runtimeGate';
+      return 'createTierProposalRow';
+    }
+
+    let lastCreateTierProposalReview = null;
+
+    function renderCreateTierProposalReview(payload, opts={}) {
+      const options = opts || {};
+      const rawReview = get(payload, ['tiers', 'create_tier_proposal_review'], null);
+      const normalizedReview = normalizeCreateTierProposalReview(rawReview);
+      const cachedReview = options.preserveLastGoodReview ? lastCreateTierProposalReview : null;
+      const review = normalizedReview || cachedReview;
+      const rows = Array.isArray(review?.proposal_reviews) ? review.proposal_reviews : [];
+      const staleEl = document.getElementById('createTierProposalStale');
+      const emptyEl = document.getElementById('createTierProposalEmpty');
+      const tbody = document.getElementById('createTierProposalTableBody');
+      const countEl = document.getElementById('createTierProposalCount');
+      const blockedEl = document.getElementById('createTierProposalBlocked');
+      const acceptedEl = document.getElementById('createTierProposalAccepted');
+      const authorityEl = document.getElementById('createTierProposalAuthority');
+      const stateCardEl = document.getElementById('createTierProposalStateCard');
+      const stateSummaryEl = document.getElementById('createTierProposalStateSummary');
+      const blockingCardEl = document.getElementById('createTierProposalBlockingCard');
+      const blockingSummaryEl = document.getElementById('createTierProposalBlockingSummary');
+      const authorityCardEl = document.getElementById('createTierProposalAuthorityCard');
+      const authoritySummaryEl = document.getElementById('createTierProposalAuthoritySummary');
+
+      if (staleEl) {
+        staleEl.style.display = options.staleMessage ? '' : 'none';
+        staleEl.textContent = options.staleMessage ? String(options.staleMessage) : '';
+      }
+      if (emptyEl) emptyEl.style.display = 'none';
+      if (tbody) tbody.innerHTML = '';
+
+      const proposalCount = safeNumber(review?.proposal_review_count, rows.length);
+      const blockedCount = safeNumber(review?.blocked_proposal_count, rows.filter(r => !r.accepted).length);
+      const acceptedCount = safeNumber(review?.accepted_proposal_count, rows.filter(r => r.accepted).length);
+      const authorityOk = rows.every(row => row && row.authoritative === false && row.current_serving === false);
+
+      if (countEl) countEl.textContent = String(Math.trunc(proposalCount));
+      if (blockedEl) blockedEl.textContent = String(Math.trunc(blockedCount));
+      if (acceptedEl) acceptedEl.textContent = String(Math.trunc(acceptedCount));
+      if (authorityEl) authorityEl.textContent = rows.length ? (authorityOk ? 'yes' : 'no') : 'yes';
+
+      if (normalizedReview) {
+        lastCreateTierProposalReview = normalizedReview;
+      }
+
+      if (!normalizedReview && cachedReview && options.staleMessage) {
+        setProposalSummaryCard(
+          stateCardEl,
+          stateSummaryEl,
+          'Showing the last successful create-tier proposal review because the latest refresh failed.',
+          'warn'
+        );
+        setProposalSummaryCard(blockingCardEl, blockingSummaryEl, formatCreateTierBlockingMix(rows), blockedCount > 0 ? 'warn' : 'good');
+        setProposalSummaryCard(
+          authorityCardEl,
+          authoritySummaryEl,
+          authorityOk
+            ? 'Every visible row remains non-authoritative and non-serving.'
+            : 'One or more visible rows no longer match the required non-authoritative, non-serving posture.',
+          authorityOk ? 'good' : 'bad'
+        );
+      } else if (!review || !rows.length) {
+        const missingReview = !rawReview;
+        setProposalSummaryCard(
+          stateCardEl,
+          stateSummaryEl,
+          missingReview ? 'The current ops-status payload does not include a create-tier proposal review block.' : 'No create-tier proposal rows are currently visible.',
+          missingReview ? 'warn' : ''
+        );
+        setProposalSummaryCard(
+          blockingCardEl,
+          blockingSummaryEl,
+          'No blocking stages are visible.',
+          ''
+        );
+        setProposalSummaryCard(
+          authorityCardEl,
+          authoritySummaryEl,
+          'All visible rows must remain non-authoritative and non-serving.',
+          'good'
+        );
+        if (emptyEl) {
+          emptyEl.style.display = '';
+          emptyEl.textContent = rawReview
+            ? 'No create-tier proposal rows are currently visible in the loaded ops-status payload.'
+            : 'The current ops-status payload does not include a create-tier proposal review block.';
+        }
+        return;
+      }
+
+      if (!options.staleMessage || normalizedReview) {
+        const summaryStateText = acceptedCount === proposalCount
+          ? 'All visible proposals are accepted in the current dry-run review.'
+          : (blockedCount === proposalCount
+            ? 'All visible proposals are currently blocked in the dry-run review.'
+            : 'The current dry-run review contains a mix of blocked and accepted proposals.');
+        const summaryStateKind = acceptedCount === proposalCount ? 'good' : (blockedCount === proposalCount ? 'warn' : '');
+        const authoritySummaryText = authorityOk
+          ? 'Every visible row remains non-authoritative and non-serving.'
+          : 'One or more visible rows no longer match the required non-authoritative, non-serving posture.';
+
+        setProposalSummaryCard(stateCardEl, stateSummaryEl, summaryStateText, summaryStateKind);
+        setProposalSummaryCard(blockingCardEl, blockingSummaryEl, formatCreateTierBlockingMix(rows), blockedCount > 0 ? 'warn' : 'good');
+        setProposalSummaryCard(authorityCardEl, authoritySummaryEl, authoritySummaryText, authorityOk ? 'good' : 'bad');
+      }
+
+      if (!tbody) return;
+      for (const row of rows) {
+        const blockingStage = String(row?.blocking_stage || '');
+        const accepted = Boolean(row?.accepted);
+        const stageKind = accepted ? 'good' : (blockingStage === 'initial_selection' ? 'bad' : (blockingStage === 'runtime_gate' ? 'warn' : ''));
+        const authorityKind = (row?.authoritative === false && row?.current_serving === false) ? 'good' : 'bad';
+        const requiredGateNames = Array.isArray(row?.required_gate_names) ? row.required_gate_names : [];
+        const satisfiedGateNames = Array.isArray(row?.satisfied_gate_names) ? row.satisfied_gate_names : [];
+        const refusalReasons = Array.isArray(row?.refusal_reasons) ? row.refusal_reasons : [];
+        const stageResults = (row?.stage_results && typeof row.stage_results === 'object') ? row.stage_results : {};
+        const stageReasonMap = (row?.stage_reason_map && typeof row.stage_reason_map === 'object') ? row.stage_reason_map : {};
+        const capacityBlocked = refusalReasons.includes('factory_at_capacity');
+        const postureSummary = describeCreateTierProposalRow(row);
+        const gateStatus = requiredGateNames.length
+          ? `${satisfiedGateNames.length}/${requiredGateNames.length} required gates satisfied`
+          : 'No required gates are listed in the current dry-run review.';
+
+        const detailsHtml = `
+          <details>
+            <summary style="cursor:pointer;">review details</summary>
+            <div class="createTierProposalDetailList">
+              <div class="createTierProposalDetailLine"><strong>review_posture:</strong> ${escapeHtml(postureSummary)}</div>
+              <div class="createTierProposalDetailLine"><strong>capacity_signal:</strong> ${escapeHtml(capacityBlocked ? 'factory_at_capacity (serving runtime unchanged)' : 'no capacity block reported')}</div>
+              <div class="createTierProposalDetailLine"><strong>gate_status:</strong> ${escapeHtml(gateStatus)}</div>
+              <div class="createTierProposalDetailLine"><strong>refusal_reasons:</strong> ${escapeHtml(refusalReasons.length ? refusalReasons.join(', ') : 'none')}</div>
+              <div class="createTierProposalDetailLine"><strong>required_gate_names:</strong> ${escapeHtml(requiredGateNames.length ? requiredGateNames.join(', ') : 'none')}</div>
+              <div class="createTierProposalDetailLine"><strong>satisfied_gate_names:</strong> ${escapeHtml(satisfiedGateNames.length ? satisfiedGateNames.join(', ') : 'none')}</div>
+              <div class="createTierProposalDetailLine"><strong>stage_results:</strong> ${escapeHtml(Object.keys(stageResults).length ? JSON.stringify(stageResults) : '{}')}</div>
+              <div class="createTierProposalDetailLine"><strong>stage_reason_map:</strong> ${escapeHtml(Object.keys(stageReasonMap).length ? JSON.stringify(stageReasonMap) : '{}')}</div>
+            </div>
+          </details>
+        `;
+
+        const tr = document.createElement('tr');
+        tr.className = createTierProposalRowClassName(row);
+        tr.innerHTML = `
+          <td>${escapeHtml(String(row?.factory_id || ''))}</td>
+          <td>${escapeHtml(String(row?.family_template_id || ''))}</td>
+          <td>${escapeHtml(String(Math.trunc(safeNumber(row?.planned_group_count, 0))))}</td>
+          <td>${escapeHtml(String(Math.trunc(safeNumber(row?.planned_instance_count, 0))))}</td>
+          <td><span class="tag ${stageKind}">${escapeHtml(blockingStage || (accepted ? 'accepted' : 'unblocked'))}</span></td>
+          <td>${escapeHtml(String(row?.runtime_gate_mode || ''))}</td>
+          <td><span class="tag ${authorityKind}">authoritative=${escapeHtml(String(Boolean(row?.authoritative)))} current_serving=${escapeHtml(String(Boolean(row?.current_serving)))}</span></td>
+          <td>${detailsHtml}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    async function fetchOpsStatusOnce() {
+      setOpsStatusTag('fetching...', '');
+      const base = _getBase();
+      const url = `${base}/${OPS_STATUS_PATH}`;
+      try {
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const payload = await r.json();
+        renderOpsStatus(payload);
+      } catch (e) {
+        setOpsStatusTag('fetch failed', 'bad');
+        renderCreateTierProposalReview(null, {
+          staleMessage: `Could not fetch ops status. ${String(e && e.message ? e.message : e)}`,
+          preserveLastGoodReview: true,
+        });
+        const rawEl = document.getElementById('opsStatusRaw');
+        if (rawEl) rawEl.value = String(e && e.message ? e.message : e);
+      }
+    }
+
+    async function loadCreateTierProposalFixture(kind) {
+      const fixturePath = CREATE_TIER_PROPOSAL_FIXTURE_PATHS[String(kind || '')] || '';
+      if (!fixturePath) {
+        setCreateTierFixtureTag('unknown fixture', 'bad');
+        return;
+      }
+
+      setCreateTierFixtureTag('loading...', 'warn');
+      const base = _getBase();
+      const url = `${base}/${fixturePath}`;
+      try {
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const payload = await r.json();
+        renderOpsStatus(payload);
+        setCreateTierFixtureTag('fixture loaded', 'good');
+      } catch (e) {
+        setCreateTierFixtureTag('fixture failed', 'bad');
+        const rawEl = document.getElementById('opsStatusRaw');
+        if (rawEl) {
+          rawEl.value = [
+            'Could not fetch the checked-in dashboard proposal fixture in server mode.',
+            '',
+            'If you opened this dashboard via file://, use the ops-status picker instead and select one of:',
+            '- tests/fixtures/dashboard_ops_status_runtime_gate_block.json',
+            '- tests/fixtures/dashboard_ops_status_initial_selection_block.json',
+            '',
+            `Error: ${String(e && e.message ? e.message : e)}`,
+          ].join('\n');
+        }
+      }
+    }
+
+    async function generateAndFetchOpsStatus() {
+      setOpsStatusTag('generating...', '');
+      const base = _getBase();
+      const url = `${base}/api/ops_status`;
+      try {
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'X-AI-Algorithms-Dashboard': '1',
+          },
+          body: JSON.stringify({ reason: 'dashboard_generate_ops_status' }),
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        await fetchOpsStatusOnce();
+      } catch (e) {
+        setOpsStatusTag('generate failed', 'bad');
+        renderCreateTierProposalReview(null, {
+          staleMessage: `Could not generate ops status. ${String(e && e.message ? e.message : e)}`,
+          preserveLastGoodReview: true,
+        });
+        const rawEl = document.getElementById('opsStatusRaw');
+        if (rawEl) rawEl.value = String(e && e.message ? e.message : e);
+      }
+    }
+
+    function toggleOpsStatusAutorefresh() {
+      if (__opsStatusTimer) {
+        clearInterval(__opsStatusTimer);
+        __opsStatusTimer = null;
+        setOpsStatusTag('autorefresh off', '');
+        return;
+      }
+      const intervalEl = document.getElementById('opsStatusInterval');
+      const sec = _parseIntSafe(intervalEl ? intervalEl.value : '10', 10);
+      const ms = Math.max(2, sec) * 1000;
+      __opsStatusTimer = setInterval(() => { fetchOpsStatusOnce(); }, ms);
+      setOpsStatusTag(`autorefresh ${Math.round(ms/1000)}s`, '');
+      fetchOpsStatusOnce();
+    }
+
+    async function loadOpsStatusFromPicker() {
+      const input = document.getElementById('opsStatusFile');
+      if (!input || !input.files || !input.files[0]) return;
+      setOpsStatusTag('loading...', '');
+      try {
+        const txt = await input.files[0].text();
+        const payload = JSON.parse(txt);
+        renderOpsStatus(payload);
+      } catch (e) {
+        setOpsStatusTag('load failed', 'bad');
+        renderCreateTierProposalReview(null, {
+          staleMessage: 'The selected ops-status file could not be parsed.',
+          preserveLastGoodReview: true,
+        });
+      }
+    }
+
+    async function loadLiveSnapshotFromPicker() {
+      try {
+        const input = document.getElementById('liveSnapshotFile');
+        if (!input || !input.files || !input.files.length) {
+          setLiveSnapshotStatus('no file selected', 'warn');
+          return;
+        }
+        const obj = await readJsonFile(input.files[0]);
+        renderLiveSnapshot(obj);
+        setLiveSnapshotStatus('loaded', 'ok');
+      } catch (e) {
+        setLiveSnapshotStatus('load failed', 'bad');
+      }
+    }
+
+    async function fetchLiveSnapshotOnce() {
+      const base = _getBase();
+      const url = `${base}/${LIVE_SNAPSHOT_PATH}`;
+      try {
+        setLiveSnapshotStatus('fetching...', 'warn');
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) {
+          setLiveSnapshotStatus(`fetch ${r.status}`, 'bad');
+          return;
+        }
+        const obj = await r.json();
+        renderLiveSnapshot(obj);
+        setLiveSnapshotStatus('ok', 'ok');
+      } catch {
+        setLiveSnapshotStatus('fetch error', 'bad');
+      }
+    }
+
+    async function fetchLiveHealthNow() {
+      setLiveHealthTag('fetching...', 'warn');
+      try {
+        await Promise.all([
+          fetchLiveSnapshotOnce(),
+          fetchOpsStatusOnce(),
+        ]);
+        setLiveHealthTag('ok', 'good');
+      } catch {
+        setLiveHealthTag('fetch error', 'bad');
+      }
+    }
+
+    async function fetchAnalysisModeNow() {
+      setLiveHealthTag('analysis...', 'warn');
+      try {
+        await fetchLiveHealthNow();
+        await Promise.all([
+          fetchActivityScalingOnce(),
+          fetchHardwarePreflightOnce(),
+        ]);
+        if (window.location && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
+          await fetchScorecardInputsOnce();
+          computeAndRenderScorecard();
+        }
+        setLiveHealthTag('analysis ok', 'good');
+      } catch {
+        setLiveHealthTag('analysis failed', 'bad');
+      }
+    }
+
+    let _liveSnapshotTimer = null;
+    function toggleLiveSnapshotAutorefresh() {
+      if (_liveSnapshotTimer) {
+        clearInterval(_liveSnapshotTimer);
+        _liveSnapshotTimer = null;
+        setLiveSnapshotStatus('auto-refresh off', '');
+        return;
+      }
+
+      const iv = _parseIntSafe((document.getElementById('liveSnapshotInterval') || {}).value, 10);
+      const intervalMs = Math.max(2, Math.min(iv, 600)) * 1000;
+      _liveSnapshotTimer = setInterval(() => { fetchLiveSnapshotOnce(); }, intervalMs);
+      setLiveSnapshotStatus('auto-refresh on', 'ok');
+      fetchLiveSnapshotOnce();
+    }
+
+    function toggleLiveHealthAutorefresh() {
+      if (__liveHealthTimer) {
+        clearInterval(__liveHealthTimer);
+        __liveHealthTimer = null;
+        setLiveHealthTag('auto-refresh off', '');
+        return;
+      }
+
+      const intervalEl = document.getElementById('liveHealthInterval');
+      const sec = _parseIntSafe(intervalEl ? intervalEl.value : '10', 10);
+      const ms = Math.max(2, sec) * 1000;
+      __liveHealthTimer = setInterval(() => { fetchLiveHealthNow(); }, ms);
+      setLiveHealthTag(`auto ${Math.round(ms / 1000)}s`, 'good');
+      fetchLiveHealthNow();
+    }
+
+    function _getQueryParam(name) {
+      try {
+        const u = new URL(window.location.href);
+        return u.searchParams.get(name);
+      } catch {
+        return null;
+      }
+    }
+
+    function getServerMetricsMode() {
+      // Priority: query param -> localStorage -> current select -> default.
+      const qp = String(_getQueryParam('metrics') || '').toLowerCase();
+      if (qp === 'compare' || qp === 'run') return qp;
+
+      try {
+        const saved = String(localStorage.getItem('dashboard_metrics_server_mode') || '').toLowerCase();
+        if (saved === 'compare' || saved === 'run') return saved;
+      } catch {
+        // ignore
+      }
+
+      const el = document.getElementById('metricsServerSource');
+      const v = String(el?.value || '').toLowerCase();
+      if (v === 'compare' || v === 'run') return v;
+      return 'run';
+    }
+
+    function setServerMetricsMode(mode) {
+      const m = (String(mode || '').toLowerCase() === 'compare') ? 'compare' : 'run';
+      const el = document.getElementById('metricsServerSource');
+      if (el) el.value = m;
+      try {
+        localStorage.setItem('dashboard_metrics_server_mode', m);
+      } catch {
+        // ignore
+      }
+      return m;
+    }
+
+    function extractScenarioId(report, fallbackName='') {
+      return (
+        get(report, ['scenario_id'], null) ||
+        get(report, ['scenario'], null) ||
+        get(report, ['id'], null) ||
+        get(report, ['task', 'scenario_id'], null) ||
+        fallbackName ||
+        'unknown'
+      );
+    }
+
+    function extractTaskId(report) {
+      return (
+        get(report, ['task_id'], null) ||
+        get(report, ['task', 'task_id'], null) ||
+        get(report, ['task', 'id'], null) ||
+        get(report, ['task', 'target_record_id'], null) ||
+        ''
+      );
+    }
+
+    function extractValidation(report) {
+      return (
+        get(report, ['validation'], null) ||
+        get(report, ['task', 'validation'], null) ||
+        get(report, ['result', 'validation'], null) ||
+        null
+      );
+    }
+
+    function extractN(report) {
+      const v = extractValidation(report);
+      const n = get(v || {}, ['n'], null);
+      if (n === null || n === undefined) return null;
+      if (typeof n === 'string' && n.trim() === '') return null;
+      const nn = Number(n);
+      return Number.isFinite(nn) ? nn : null;
+    }
+
+    function extractSeed(report) {
+      const v = extractValidation(report) || {};
+      return (
+        get(report, ['deterministic_seed'], null) ||
+        get(report, ['seed_obj', 'seed'], null) ||
+        get(v, ['seed'], null) ||
+        get(report, ['task', 'deterministic_seed'], null) ||
+        get(report, ['result', 'deterministic_seed'], null) ||
+        ''
+      );
+    }
+
+    function extractPassFail(report) {
+      const v = extractValidation(report) || {};
+      const resultObj = get(report, ['result'], null);
+      const res = (resultObj && typeof resultObj === 'object') ? resultObj : {};
+
+      const scenarioId = String(extractScenarioId(report, '') || '').toUpperCase();
+      const status = String(
+        get(report, ['status'], '') ||
+        get(report, ['task', 'status'], '') ||
+        get(report, ['result', 'task_status'], '') ||
+        get(report, ['result', 'status'], '') ||
+        ''
+      ).toLowerCase();
+      const validationResult = String(get(v, ['result'], '') || '').toLowerCase();
+
+      // Scenario-specific semantics (matches adversarial harness intent).
+      if (scenarioId.startsWith('S1')) {
+        if (get(res, ['rolled_back'], null) === true) return 'FAIL';
+        if (String(get(res, ['task_status'], '') || '').toLowerCase() === 'validated') return 'PASS';
+      }
+
+      if (scenarioId.startsWith('S2')) {
+        if (get(res, ['needs_review'], null) === true) return 'NEEDS_REVIEW';
+        if (String(get(res, ['task_status'], '') || '').toLowerCase() === 'needs_review') return 'NEEDS_REVIEW';
+      }
+
+      if (scenarioId.startsWith('S3')) {
+        if (get(res, ['mis_association'], null) === true) return 'PASS';
+        if (get(res, ['mis_association'], null) === false) return 'FAIL';
+      }
+
+      if (scenarioId.startsWith('S4')) {
+        if (get(res, ['flagged'], null) === true) return 'PASS';
+        if (get(res, ['flagged'], null) === false) return 'FAIL';
+      }
+
+      if (scenarioId.startsWith('S5')) {
+        const action = String(get(res, ['escalation_action'], '') || '').toLowerCase();
+        if (action === 'escalate') return 'ESCALATED';
+        if (action) return action.toUpperCase();
+      }
+
+      if (scenarioId.startsWith('S6')) {
+        if (get(res, ['negative_gain'], null) === true) return 'FAIL';
+        if (get(res, ['re_evaluate'], null) === true) return 'ESCALATED';
+      }
+
+      // Common schema: validated/rolled_back.
+      if (get(res, ['rolled_back'], null) === true) return 'FAIL';
+      if (status.includes('validated')) return 'PASS';
+      if (status.includes('needs_review')) return 'NEEDS_REVIEW';
+
+      if (status.includes('fail') || validationResult.includes('fail')) return 'FAIL';
+      if (status.includes('pass') || validationResult.includes('pass')) return 'PASS';
+
+      // Heuristic: if a boolean exists.
+      const ok = get(report, ['ok'], null);
+      if (ok === true) return 'PASS';
+      if (ok === false) return 'FAIL';
+
+      // Fallback: escalation / re-evaluate.
+      if (validationResult.includes('escal')) return 'ESCALATED';
+      if (get(res, ['re_evaluate'], null) === true) return 'ESCALATED';
+
+      return status ? status.toUpperCase() : (validationResult ? validationResult.toUpperCase() : 'UNKNOWN');
+    }
+
+    function extractEscalation(report) {
+      const v = extractValidation(report) || {};
+      const resultObj = get(report, ['result'], null);
+      const res = (resultObj && typeof resultObj === 'object') ? resultObj : {};
+      const escalated = (
+        get(report, ['task', 'escalated'], null) === true ||
+        get(report, ['escalated'], null) === true ||
+        String(get(v, ['result'], '') || '').toLowerCase() === 'escalated' ||
+        String(get(report, ['task', 'status'], '') || '').toLowerCase() === 'needs_review' ||
+        String(get(res, ['task_status'], '') || '').toLowerCase() === 'needs_review' ||
+        get(res, ['needs_review'], null) === true ||
+        String(get(res, ['escalation_action'], '') || '').toLowerCase() === 'escalate' ||
+        get(report, ['result', 're_evaluate'], null) === true ||
+        get(report, ['result', 'rolled_back'], null) === true
+      );
+
+      const retryCount = (
+        get(report, ['task', 'retry_count'], null) ||
+        get(report, ['retry_count'], null) ||
+        get(report, ['task', 'attempts'], null) ||
+        get(res, ['attempts'], null) ||
+        (Array.isArray(get(res, ['failures'], null)) ? get(res, ['failures'], []).length : null) ||
+        ''
+      );
+
+      const reason = (
+        get(report, ['task', 'escalation_reason'], null) ||
+        get(report, ['escalation_reason'], null) ||
+        get(report, ['reason'], null) ||
+        get(v, ['reason'], null) ||
+        get(res, ['escalation_reason'], null) ||
+        ''
+      );
+
+      return { escalated: Boolean(escalated), retryCount, reason };
+    }
+
+    async function readJsonFile(file) {
+      const text = await file.text();
+      return JSON.parse(text);
+    }
+
+    async function readTextFile(file) {
+      return await file.text();
+    }
+
+    function renderKpis(metrics, reports) {
+      const adaptiveUsed = safeNumber(metrics['resolution_adaptive_used_total']);
+      const adaptiveSamples = safeNumber(metrics['resolution_adaptive_samples_total']);
+      const earlyStop = safeNumber(metrics['resolution_adaptive_early_stop_total']);
+      const escalations = safeNumber(metrics['resolution_rollback_storm_escalations_total']);
+
+      const avgAdaptiveN = adaptiveUsed > 0 ? (adaptiveSamples / adaptiveUsed) : 0;
+      const earlyStopRate = adaptiveUsed > 0 ? (earlyStop / adaptiveUsed) : 0;
+
+      // From reports: average n when present.
+      const ns = reports.map(r => extractN(r.data)).filter(n => n != null);
+      const avgReportN = ns.length ? (ns.reduce((a,b)=>a+b,0)/ns.length) : 0;
+
+      const kpis = [
+        { label: 'adaptive_used_total', value: String(Math.trunc(adaptiveUsed)) },
+        { label: 'avg_samples_per_validation', value: (avgReportN ? avgReportN.toFixed(2) : avgAdaptiveN.toFixed(2)) },
+        { label: 'early_stop_rate', value: earlyStopRate.toFixed(3) },
+        { label: 'escalations_total', value: String(Math.trunc(escalations)) },
+      ];
+
+      const el = document.getElementById('kpis');
+      if (!el) return;
+      el.innerHTML = '';
+      for (const k of kpis) {
+        const d = document.createElement('div');
+        d.className = 'kpi';
+        d.innerHTML = `<div class="label">${k.label}</div><div class="value">${k.value}</div>`;
+        el.appendChild(d);
+      }
+    }
+
+    function renderCountersChart(metrics) {
+      const el = document.getElementById('chartCounters');
+      if (!window.Plotly || typeof Plotly.newPlot !== 'function') {
+        if (el) {
+          el.classList.add('hint-only');
+          el.innerHTML = '<div class="hint">Charts unavailable: Plotly failed to load (offline/blocked). Tables and raw JSON still work.</div>';
+        }
+        return;
+      }
+      if (el) {
+        el.classList.remove('hint-only');
+        el.innerHTML = '';
+      }
+      const keys = DEFAULT_COUNTER_KEYS;
+      const values = keys.map(k => safeNumber(metrics[k] || 0));
+
+      const trace = {
+        x: keys,
+        y: values,
+        type: 'bar',
+        marker: { color: '#66d9ef' }
+      };
+
+      const layout = {
+        title: { text: 'Metrics counters (metrics.json)', font: { color: '#e7eef8', size: 14 } },
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        font: { color: '#e7eef8' },
+        margin: { l: 40, r: 10, t: 40, b: 90 },
+        xaxis: { tickangle: -25, automargin: true },
+        yaxis: { automargin: true }
+      };
+
+      try {
+        Plotly.newPlot('chartCounters', [trace], layout, {responsive: true, displayModeBar: false});
+      } catch {
+        if (el) {
+          el.classList.add('hint-only');
+          el.innerHTML = '<div class="hint">Charts error: Plotly rendering failed. Tables and raw JSON still work.</div>';
+        }
+      }
+    }
+
+    function renderHistogram(reports) {
+      const el = document.getElementById('chartHistogram');
+      if (!window.Plotly || typeof Plotly.newPlot !== 'function') {
+        if (el) {
+          el.classList.add('hint-only');
+          el.innerHTML = '<div class="hint">Charts unavailable: Plotly failed to load (offline/blocked). Tables and raw JSON still work.</div>';
+        }
+        return;
+      }
+      if (el) {
+        el.classList.remove('hint-only');
+        el.innerHTML = '';
+      }
+      const ns = reports.map(r => extractN(r.data)).filter(n => n != null);
+      const trace = {
+        x: ns,
+        type: 'histogram',
+        marker: { color: '#a6e22e' },
+        nbinsx: 20
+      };
+
+      const layout = {
+        title: { text: 'Sample count distribution (from adversarial reports)', font: { color: '#e7eef8', size: 14 } },
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        font: { color: '#e7eef8' },
+        margin: { l: 40, r: 10, t: 40, b: 40 },
+        xaxis: { title: 'n', automargin: true },
+        yaxis: { title: 'count', automargin: true }
+      };
+
+      try {
+        Plotly.newPlot('chartHistogram', [trace], layout, {responsive: true, displayModeBar: false});
+      } catch {
+        if (el) {
+          el.classList.add('hint-only');
+          el.innerHTML = '<div class="hint">Charts error: Plotly rendering failed. Tables and raw JSON still work.</div>';
+        }
+      }
+    }
+
+    function renderPie(metrics) {
+      const el = document.getElementById('chartPie');
+      if (!window.Plotly || typeof Plotly.newPlot !== 'function') {
+        if (el) {
+          el.classList.add('hint-only');
+          el.innerHTML = '<div class="hint">Charts unavailable: Plotly failed to load (offline/blocked). Tables and raw JSON still work.</div>';
+        }
+        return;
+      }
+      if (el) {
+        el.classList.remove('hint-only');
+        el.innerHTML = '';
+      }
+      const used = safeNumber(metrics['resolution_adaptive_used_total']);
+      const early = safeNumber(metrics['resolution_adaptive_early_stop_total']);
+      const nonEarly = Math.max(0, used - early);
+
+      if (used <= 0) {
+        if (el) {
+          el.classList.add('hint-only');
+          el.innerHTML = '<div class="hint">No adaptive sampling activity yet (`resolution_adaptive_used_total` is 0), so the early-stop pie chart is empty.</div>';
+        }
+        return;
+      }
+
+      const trace = {
+        labels: ['early_stop', 'non_early_stop'],
+        values: [early, nonEarly],
+        type: 'pie',
+        marker: { colors: ['#fd971f', '#66d9ef'] }
+      };
+
+      const layout = {
+        title: { text: 'Early stop vs non-early (from metrics)', font: { color: '#e7eef8', size: 14 } },
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        font: { color: '#e7eef8' },
+        margin: { l: 10, r: 10, t: 40, b: 10 },
+        showlegend: true
+      };
+
+      try {
+        Plotly.newPlot('chartPie', [trace], layout, {responsive: true, displayModeBar: false});
+      } catch {
+        if (el) {
+          el.classList.add('hint-only');
+          el.innerHTML = '<div class="hint">Charts error: Plotly rendering failed. Tables and raw JSON still work.</div>';
+        }
+      }
+    }
+
+    function renderEscalationTable(reports) {
+      const tbody = document.querySelector('#escalationTable tbody');
+      const empty = document.getElementById('escalationEmpty');
+      if (!tbody || !empty) return;
+
+      tbody.innerHTML = '';
+      const rows = [];
+
+      for (const r of reports) {
+        const sid = extractScenarioId(r.data, r.name);
+        const taskId = extractTaskId(r.data);
+        const esc = extractEscalation(r.data);
+        if (!esc.escalated) continue;
+
+        rows.push({
+          file: r.name,
+          scenario: sid,
+          taskId,
+          retry: esc.retryCount,
+          reason: String(esc.reason || '').slice(0, 160)
+        });
+      }
+
+      if (!rows.length) {
+        empty.style.display = 'block';
+        return;
+      }
+
+      empty.style.display = 'none';
+      for (const row of rows) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(row.file)}</td>
+          <td>${escapeHtml(String(row.scenario))}</td>
+          <td>${escapeHtml(String(row.taskId || ''))}</td>
+          <td>${escapeHtml(String(row.retry || ''))}</td>
+          <td>${escapeHtml(String(row.reason || ''))}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function renderScenarioTable(reports) {
+      const tbody = document.querySelector('#scenarioTable tbody');
+      if (!tbody) return;
+
+      tbody.innerHTML = '';
+      const rows = [];
+
+      for (const r of reports) {
+        const sid = extractScenarioId(r.data, r.name);
+        const pf = extractPassFail(r.data);
+        const n = extractN(r.data);
+        const seed = extractSeed(r.data);
+
+        rows.push({
+          scenario: sid,
+          pf,
+          n: (n == null ? '' : String(n)),
+          seed: (seed == null ? '' : String(seed)),
+          file: r.name
+        });
+      }
+
+      rows.sort((a,b) => String(a.scenario).localeCompare(String(b.scenario)));
+
+      for (const row of rows) {
+        const tagClass = (String(row.pf).toUpperCase().includes('PASS')) ? 'good' : (String(row.pf).toUpperCase().includes('FAIL') ? 'bad' : '');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(String(row.scenario))}</td>
+          <td><span class="tag ${tagClass}">${escapeHtml(String(row.pf))}</span></td>
+          <td>${escapeHtml(String(row.n))}</td>
+          <td>${escapeHtml(String(row.seed))}</td>
+          <td>${escapeHtml(String(row.file))}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function renderRawMetrics(rawText) {
+      const ta = document.getElementById('rawMetrics');
+      if (!ta) return;
+      ta.value = rawText || '';
+    }
+
+    function setupSweepDownload(text) {
+      const link = document.getElementById('downloadSweep');
+      if (!link) return;
+      if (!text) {
+        link.style.display = 'none';
+        link.href = '#';
+        return;
+      }
+      const blob = new Blob([text], {type: 'text/csv'});
+      const url = URL.createObjectURL(blob);
+      link.href = url;
+      link.download = 'sweep_results.csv';
+      link.style.display = 'inline-block';
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    async function loadFromPickers() {
+      const metricsEl = document.getElementById('metricsFile');
+      const reportsEl = document.getElementById('reportsFiles');
+      const sweepEl = document.getElementById('sweepCsv');
+
+      let metricsPayload = {};
+      let metricsRawText = '';
+      let reports = [];
+      let sweepText = '';
+
+      if (metricsEl && metricsEl.files && metricsEl.files.length) {
+        const file = metricsEl.files[0];
+        metricsRawText = await file.text();
+        try {
+          metricsPayload = JSON.parse(metricsRawText);
+        } catch {
+          metricsPayload = {};
+        }
+      }
+
+      if (reportsEl && reportsEl.files && reportsEl.files.length) {
+        for (const f of reportsEl.files) {
+          try {
+            const data = await readJsonFile(f);
+            reports.push({ name: f.name, data });
+          } catch {
+            // skip
+          }
+        }
+      }
+
+      if (sweepEl && sweepEl.files && sweepEl.files.length) {
+        sweepText = await readTextFile(sweepEl.files[0]);
+      }
+
+      return { metricsPayload, metricsRawText, reports, sweepText };
+    }
+
+    async function tryFetchDefaults(options = {}) {
+      // This only works in server mode (http://) due to browser security.
+      // We cannot list directories, so we attempt a small set of known filenames.
+      const suppressAlert = Boolean(options && options.suppressAlert);
+      setStatus('fetching...', '');
+
+      window.__fetchLog = [];
+      function _logFetch(url, status, note='') {
+        try {
+          window.__fetchLog.push({ ts: Date.now(), url, status, note });
+          const el = document.getElementById('fetchLog');
+          if (el) {
+            const lines = window.__fetchLog.map(e => {
+              const code = (e.status === null || e.status === undefined) ? 'ERR' : String(e.status);
+              const extra = e.note ? ` (${e.note})` : '';
+              return `${code} ${e.url}${extra}`;
+            });
+            el.textContent = lines.join('\n');
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      const base = (document.getElementById('basePath')?.value || '.').replace(/\/+$/, '');
+      const metricsMode = getServerMetricsMode();
+      const metricsRel = METRICS_SERVER_PATHS[metricsMode] || METRICS_SERVER_PATHS.run;
+      const candidates = [
+        `${base}/${metricsRel}`,
+        `${base}/metrics.json`,
+      ];
+
+      const indexCandidates = [
+        `${base}/adversarial_run_index.json`,
+        `${base}/TemporaryQueue/adversarial_run_index.json`,
+      ];
+
+      const reportFilenames = [
+        'adversarial_report_S1_small_noise.json',
+        'adversarial_report_S2_large_outlier.json',
+        'adversarial_report_S3_context_swap.json',
+        'adversarial_report_S4_poisoned_retrieval.json',
+        'adversarial_report_S5_rollback_storm.json',
+        'adversarial_report_S6_counterfactual_negative_gain.json',
+      ];
+
+      async function tryFetchJson(url) {
+        try {
+          const r = await fetch(url, { cache: 'no-store' });
+          _logFetch(url, r.status, r.ok ? '' : 'not ok');
+          if (!r.ok) return null;
+          return await r.json();
+        } catch (e) {
+          _logFetch(url, null, (e && e.message) ? String(e.message) : 'fetch error');
+          return null;
+        }
+      }
+
+      let metricsPayload = {};
+      let metricsRawText = '';
+      for (const url of candidates) {
+        try {
+          const r = await fetch(url, { cache: 'no-store' });
+          _logFetch(url, r.status, r.ok ? '' : 'not ok');
+          if (!r.ok) continue;
+          metricsRawText = await r.text();
+          metricsPayload = JSON.parse(metricsRawText);
+          break;
+        } catch {
+          _logFetch(url, null, 'fetch error');
+          // continue
+        }
+      }
+
+      const reports = [];
+
+      // Prefer the adversarial run index (if present) to discover report paths.
+      const seenReportUrls = new Set();
+      for (const url of indexCandidates) {
+        const idx = await tryFetchJson(url);
+        if (!idx || !Array.isArray(idx.reports)) continue;
+        for (const entry of idx.reports) {
+          const rf = entry && typeof entry === 'object' ? (entry.report_file || entry.file || '') : '';
+          if (!rf) continue;
+          const rel = String(rf).replace(/^\/+/, '').replace(/^\.\/+/, '');
+          const reportUrl = `${base}/${rel}`;
+          if (seenReportUrls.has(reportUrl)) continue;
+          seenReportUrls.add(reportUrl);
+          const data = await tryFetchJson(reportUrl);
+          if (!data) continue;
+          const name = reportUrl.split('/').slice(-1)[0];
+          reports.push({ name, data });
+        }
+        break;
+      }
+
+      // Fallback: try known filenames in TemporaryQueue first, then repo-root only if needed.
+      for (const fn of reportFilenames) {
+        const tqUrl = `${base}/TemporaryQueue/${fn}`;
+        const rootUrl = `${base}/${fn}`;
+
+        if (!seenReportUrls.has(tqUrl)) {
+          const data = await tryFetchJson(tqUrl);
+          if (data) {
+            seenReportUrls.add(tqUrl);
+            reports.push({ name: fn, data });
+            continue;
+          }
+        }
+
+        if (!seenReportUrls.has(rootUrl)) {
+          const data = await tryFetchJson(rootUrl);
+          if (data) {
+            seenReportUrls.add(rootUrl);
+            reports.push({ name: fn, data });
+          }
+        }
+      }
+
+      // Attempt sweep csv.
+      let sweepText = '';
+      try {
+        const r = await fetch(`${base}/TemporaryQueue/sweep_results.csv`, { cache: 'no-store' });
+        _logFetch(`${base}/TemporaryQueue/sweep_results.csv`, r.status, r.ok ? '' : 'not ok');
+        if (r.ok) sweepText = await r.text();
+      } catch {
+        _logFetch(`${base}/TemporaryQueue/sweep_results.csv`, null, 'fetch error');
+        // ignore
+      }
+
+      if (!metricsRawText && !reports.length) {
+        setStatus('fetch failed', 'bad');
+        if (!suppressAlert) {
+          alert('Fetch defaults failed. Use file pickers, or run a local server (python -m http.server) from repo root.');
+        }
+        return;
+      }
+
+      window.__loaded = { metricsPayload, metricsRawText, reports, sweepText };
+      setStatus('fetched', 'good');
+      renderFromLoaded(window.__loaded);
+    }
+
+    async function generateCompareAndLoadDefaults() {
+      // Convenience button: run the compare flush script via the local dashboard server,
+      // then load the recommended defaults (metrics + adversarial reports).
+      // This only works in server mode (http://127.0.0.1:8000/...).
+      setStatus('generating...', '');
+
+      window.__fetchLog = window.__fetchLog || [];
+      function _logFetch(url, status, note='') {
+        try {
+          window.__fetchLog.push({ ts: Date.now(), url, status, note });
+          const el = document.getElementById('fetchLog');
+          if (el) {
+            const lines = window.__fetchLog.map(e => {
+              const code = (e.status === null || e.status === undefined) ? 'ERR' : String(e.status);
+              const extra = e.note ? ` (${e.note})` : '';
+              return `${code} ${e.url}${extra}`;
+            });
+            el.textContent = lines.join('\n');
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      const base = (document.getElementById('basePath')?.value || '.').replace(/\/+$/, '');
+      const url = `${base}/api/compare_flush`;
+
+      try {
+        // Ensure the dashboard is in compare mode so it loads metrics_compare.json afterwards.
+        setServerMetricsMode('compare');
+
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'X-AI-Algorithms-Dashboard': '1',
+          },
+          cache: 'no-store',
+        });
+        _logFetch(url, r.status, r.ok ? '' : 'not ok');
+
+        const payload = await r.json().catch(() => ({}));
+        if (!r.ok || !payload || payload.ok !== true) {
+          setStatus('generate failed', 'bad');
+          const err = (payload && (payload.error || payload.stderr)) ? String(payload.error || payload.stderr) : 'unknown error';
+          alert(`Compare metrics generation failed.\n\n${err}`);
+          return;
+        }
+
+        setStatus('generated', 'good');
+        await tryFetchDefaults();
+      } catch (e) {
+        _logFetch(url, null, (e && e.message) ? String(e.message) : 'fetch error');
+        setStatus('generate error', 'bad');
+        alert('Could not generate compare metrics. Ensure the dashboard server is running and reload the page.');
+      }
+    }
+
+    function renderFromLoaded(loaded) {
+      const metrics = detectMetricsRoot(loaded.metricsPayload || {}) || {};
+      const reports = loaded.reports || [];
+
+      renderKpis(metrics, reports);
+      renderCountersChart(metrics);
+      renderHistogram(reports);
+      renderPie(metrics);
+      renderEscalationTable(reports);
+      renderScenarioTable(reports);
+      renderRawMetrics(loaded.metricsRawText || '');
+      setupSweepDownload(loaded.sweepText || '');
+
+      setStatus('rendered', 'good');
+    }
+
+    async function renderAll() {
+      setStatus('loading...', '');
+      try {
+        const loaded = await loadFromPickers();
+        window.__loaded = loaded;
+        renderFromLoaded(loaded);
+      } catch (e) {
+        console.error(e);
+        setStatus('error', 'bad');
+        alert('Error rendering dashboard. Check console for details.');
+      }
+    }
+
+    function _hasQueryFlag(name) {
+      try {
+        const u = new URL(window.location.href);
+        const v = (u.searchParams.get(name) || '').toLowerCase();
+        return v === '1' || v === 'true' || v === 'yes' || v === 'on';
+      } catch {
+        return false;
+      }
+    }
+
+    (function init() {
+      setStatus('idle', '');
+      setInitialPlaceholders();
+
+      const isHttp = (window.location && (window.location.protocol === 'http:' || window.location.protocol === 'https:'));
+      const af = String(_getQueryParam('autofetch') || '').toLowerCase();
+      const hasAutofetch = af === 'compare' || af === 'run' || af === 'live' || af === 'analysis' || af === 'ops' || af === 'status' || _hasQueryFlag('autofetch');
+
+      // Initialize server metrics source selector.
+      setServerMetricsMode(getServerMetricsMode());
+      const sel = document.getElementById('metricsServerSource');
+      if (sel) {
+        sel.addEventListener('change', () => {
+          setServerMetricsMode(sel.value);
+        });
+      }
+
+      // Optional convenience for Simple Browser: auto-fetch in server mode.
+      // Use: dashboard.html?autofetch=1
+      // Shell-safe alternatives (no '&' needed):
+      // - dashboard.html?autofetch=compare
+      // - dashboard.html?autofetch=run
+      // - dashboard.html?autofetch=live
+      if (!isHttp && hasAutofetch) {
+        const serverUrl = getServerModeUrl();
+        setAutofetchNotice(
+          `Autofetch quick-open was requested, but this page is running in <code>file://</code> mode so the browser cannot auto-read the repo artifacts. Use the file pickers below on this page, or open <a href="${escapeHtml(serverUrl)}">${escapeHtml(serverUrl)}</a> to auto-load the expected runtime and metrics cards.`,
+          'warn'
+        );
+        setStatus('file:// manual', 'warn');
+        setLiveHealthTag('file:// manual', 'warn');
+        setInitialPlaceholders('Autofetch quick-open is unavailable in file:// mode. Use the file pickers below, or open the server-mode URL above.');
+        return;
+      }
+
+      if (af === 'compare' || af === 'run') {
+        setServerMetricsMode(af);
+        tryFetchDefaults().catch(() => {});
+        // Also refresh operational panels for quick visibility.
+        generateAndFetchOpsStatus().catch(() => {});
+        fetchLiveSnapshotOnce().catch(() => {});
+        generateAndFetchActivityScaling().catch(() => {});
+        generateAndFetchHardwarePreflight().catch(() => {});
+        if (isHttp) {
+          fetchScorecardInputsOnce().then(() => computeAndRenderScorecard()).catch(() => {});
+        }
+      } else if (af === 'live') {
+        setServerMetricsMode('run');
+        fetchLiveHealthNow().catch(() => {});
+        tryFetchDefaults({ suppressAlert: true }).catch(() => {});
+        generateAndFetchActivityScaling().catch(() => {});
+        generateAndFetchHardwarePreflight().catch(() => {});
+        if (isHttp) {
+          fetchScorecardInputsOnce().then(() => computeAndRenderScorecard()).catch(() => {});
+        }
+      } else if (af === 'analysis') {
+        setServerMetricsMode('run');
+        fetchAnalysisModeNow().catch(() => {});
+        tryFetchDefaults({ suppressAlert: true }).catch(() => {});
+      } else if (af === 'ops' || af === 'status') {
+        // Ops-only convenience (no metrics fetch).
+        generateAndFetchOpsStatus().catch(() => {});
+        fetchLiveSnapshotOnce().catch(() => {});
+        generateAndFetchActivityScaling().catch(() => {});
+        generateAndFetchHardwarePreflight().catch(() => {});
+        if (isHttp) {
+          fetchScorecardInputsOnce().then(() => computeAndRenderScorecard()).catch(() => {});
+        }
+      } else if (_hasQueryFlag('autofetch')) {
+        tryFetchDefaults().catch(() => {});
+        fetchOpsStatusOnce().catch(() => {});
+        fetchLiveSnapshotOnce().catch(() => {});
+        fetchActivityScalingOnce().catch(() => {});
+        fetchHardwarePreflightOnce().catch(() => {});
+        if (isHttp) {
+          fetchScorecardInputsOnce().then(() => computeAndRenderScorecard()).catch(() => {});
+        }
+      }
+    })();
+  </script>
+</body>
+</html>

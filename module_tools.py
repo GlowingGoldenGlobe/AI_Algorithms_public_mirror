@@ -17,6 +17,7 @@ def _http_post(url, headers=None, data=None, timeout=30):
         return resp.read()
 
 _CONFIG_CACHE = None
+_CONFIG_CACHE_MTIME_NS = None
 
 def _clear_config_cache():
     """Clear the in-process config cache.
@@ -24,20 +25,29 @@ def _clear_config_cache():
     Useful when another module updates config.json and the same Python process
     needs to see the change without restarting.
     """
-    global _CONFIG_CACHE
+    global _CONFIG_CACHE, _CONFIG_CACHE_MTIME_NS
     _CONFIG_CACHE = None
+    _CONFIG_CACHE_MTIME_NS = None
 
 def _load_config():
-    global _CONFIG_CACHE
-    if _CONFIG_CACHE is not None:
-        return _CONFIG_CACHE
+    global _CONFIG_CACHE, _CONFIG_CACHE_MTIME_NS
     try:
         base_dir = os.path.dirname(os.path.abspath(__file__))
         path = os.path.join(base_dir, "config.json")
+        try:
+            current_mtime_ns = os.stat(path).st_mtime_ns
+        except OSError:
+            current_mtime_ns = None
+        if _CONFIG_CACHE is not None and (
+            _CONFIG_CACHE_MTIME_NS is None or _CONFIG_CACHE_MTIME_NS == current_mtime_ns
+        ):
+            return _CONFIG_CACHE
         with open(path, "r", encoding="utf-8") as f:
             _CONFIG_CACHE = _json.load(f)
+        _CONFIG_CACHE_MTIME_NS = current_mtime_ns
     except Exception:
         _CONFIG_CACHE = {}
+        _CONFIG_CACHE_MTIME_NS = None
     return _CONFIG_CACHE
 
 def _canonicalize_for_json(value):
