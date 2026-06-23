@@ -64,21 +64,19 @@ def launch_gui():
     except Exception as e:
         print(f"Logo load failed: {e}")
 
-    # Header logo (PNG)
+    # Header image (slightly wider, keep height constant)
     logo_path = r"C:\Users\yerbr\startup\glowinggoldenglobe_logo_resized.png"
     try:
         logo_img = Image.open(logo_path)
-        # Preserve aspect ratio
-        base_width = 128
-        w_percent = base_width / float(logo_img.size[0])
-        h_size = int(float(logo_img.size[1]) * w_percent)
-        logo_img = logo_img.resize((base_width, h_size), Image.LANCZOS)
+        original_width, original_height = logo_img.size
+        new_width = int(original_width * 1.3)  # widen by 30% for natural proportions
+        logo_img = logo_img.resize((new_width, original_height), Image.LANCZOS)
         logo = ImageTk.PhotoImage(logo_img)
         tk.Label(window, image=logo, bg="#1e1e2f").pack(pady=6)
     except Exception as e:
         print(f"Header logo load failed: {e}")
 
-    # Title‑bar icon
+    # Title‑bar icon (.ico)
     icon_path = r"C:\Users\yerbr\startup\glowinggoldenglobe_icon.ico"
     window.iconbitmap(icon_path)
 
