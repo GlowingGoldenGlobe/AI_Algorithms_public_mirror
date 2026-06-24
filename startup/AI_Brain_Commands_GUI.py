@@ -1,18 +1,13 @@
 """
 AI_Activities_in_Progress_GUI.py
-Location: C:\\Users\\yerbr\\startup
+Location: C:/Users/yerbr/startup
 
-Simple GUI for managing AI lifecycle activities:
- - Start AI Brain
- - Pause AI Brain
- - Resume AI Brain
- - Safely Stop AI Brain
-
-References:
- (1) GUI Folder: C:\\Users\\yerbr\\startup
- (2) AI Activities Module: C:\\Users\\yerbr\\AI_Algorithms\\public_mirror\\AI_Activities_in_Progress.py
-
-This interface connects to your existing AI_Activities_Start_Safely_Stop.py module.
+Purpose:
+Provides a graphical interface for controlling and monitoring AI Brain lifecycle events.
+Includes:
+ - Header image and icon
+ - References text
+ - Live output streaming from AI Brain, Metrics, Dashboard, and Monitor terminals
 """
 
 import tkinter as tk
@@ -20,26 +15,41 @@ from tkinter import messagebox
 from urllib.request import urlopen
 from io import BytesIO
 from PIL import Image, ImageTk
-import AI_Activities_Start_Safely_Stop as brain
-from find_site_logo import find_site_logo
+import threading
+import time
+
+from AI_Activities_Start_Safely_Stop import (
+    start_brain,
+    pause_brain,
+    resume_brain,
+    stop_brain_safely,
+    get_live_status,
+    start_metrics,
+    start_dashboard,
+    start_monitor
+)
 
 # ------------------------------------------------------------
-# FUNCTION STUBS (connect these to your real logic)
+# CONTROL FUNCTIONS
 # ------------------------------------------------------------
-def start_ai_brain():
-    brain.start_brain()
+def start_ai_brain(ai_status):
+    start_brain()
+    ai_status.set("Simulating")
     messagebox.showinfo("AI Status", "AI Brain started successfully.")
 
-def pause_ai_brain():
-    brain.pause_brain()
+def pause_ai_brain(ai_status):
+    pause_brain()
+    ai_status.set("Paused")
     messagebox.showwarning("AI Status", "AI Brain paused.")
 
-def resume_ai_brain():
-    brain.resume_brain()
+def resume_ai_brain(ai_status):
+    resume_brain()
+    ai_status.set("Simulating")
     messagebox.showinfo("AI Status", "AI Brain resumed.")
 
-def stop_ai_brain_safely():
-    brain.stop_brain_safely()
+def stop_ai_brain_safely(ai_status):
+    stop_brain_safely()
+    ai_status.set("Stopped")
     messagebox.showinfo("AI Status", "AI Brain stopped safely.")
 
 # ------------------------------------------------------------
@@ -52,8 +62,6 @@ def launch_gui():
     window.configure(bg="#1e1e2f")
 
     # Load logo AFTER window creation
-    
-    logo_url = find_site_logo("https://glowinggoldenglobe.com")
     try:
         logo_url = "https://glowinggoldenglobe.com/favicon.ico"
         with urlopen(logo_url) as response:
@@ -73,14 +81,18 @@ def launch_gui():
         logo_img = logo_img.resize((new_width, original_height), Image.LANCZOS)
         logo = ImageTk.PhotoImage(logo_img)
         tk.Label(window, image=logo, bg="#1e1e2f").pack(pady=6)
+        window.logo_ref = logo
     except Exception as e:
         print(f"Header logo load failed: {e}")
 
     # Title‑bar icon (.ico)
     icon_path = r"C:\Users\yerbr\startup\glowinggoldenglobe_icon.ico"
-    window.iconbitmap(icon_path)
+    try:
+        window.iconbitmap(icon_path)
+    except Exception as e:
+        print(f"Icon load failed: {e}")
 
-    # Header
+    # Header text
     tk.Label(
         window,
         text="AI Activities Control Panel",
@@ -93,49 +105,92 @@ def launch_gui():
     button_style = {
         "width": 26,
         "font": ("Segoe UI", 11),
-        "bg": "#2e2e3f",
-        "fg": "#ffffff",
-        "activebackground": "#00ffff"
     }
 
-    tk.Button(window, text="Start AI Brain", command=start_ai_brain, **button_style).pack(pady=6)
-    tk.Button(window, text="Pause AI Brain", command=pause_ai_brain, **button_style).pack(pady=6)
-    tk.Button(window, text="Resume AI Brain", command=resume_ai_brain, **button_style).pack(pady=6)
-    tk.Button(window, text="Stop AI Brain Safely", command=stop_ai_brain_safely, **button_style).pack(pady=6)
+    tk.Button(window, text="Start AI Brain", command=lambda: start_ai_brain(ai_status), **button_style).pack(pady=4)
+    tk.Button(window, text="Pause AI Brain", command=lambda: pause_ai_brain(ai_status), **button_style).pack(pady=4)
+    tk.Button(window, text="Resume AI Brain", command=lambda: resume_ai_brain(ai_status), **button_style).pack(pady=4)
+    tk.Button(window, text="Safely Stop AI Brain", command=lambda: stop_ai_brain_safely(ai_status), **button_style).pack(pady=4)
+    tk.Button(window, text="Start Metrics Terminal", command=start_metrics, **button_style).pack(pady=4)
+    tk.Button(window, text="Start Dashboard Terminal", command=start_dashboard, **button_style).pack(pady=4)
+    tk.Button(window, text="Start Monitor Terminal", command=start_monitor, **button_style).pack(pady=4)
 
-    # Footer references (table layout, no borders)
-    footer_frame = tk.Frame(window, bg="#1e1e2f")
-    footer_frame.pack(pady=14)
+    # Live output box
+    output_box = tk.Text(window, height=10, width=60, bg="#0f0f1a", fg="#00ff99", font=("Consolas", 10))
+    output_box.pack(pady=10)
+
+    ai_status = tk.StringVar(value="Idle")
+    tk.Label(window, textvariable=ai_status, font=("Consolas", 12, "bold"), bg="#1e1e2f", fg="white").pack(pady=5)
+
+    def update_live_output():
+        """Continuously fetch live output from all AI terminals."""
+        while True:
+            status = get_live_status()
+            if status:
+                output_box.insert(tk.END, status + "\n")
+                output_box.see(tk.END)
+                if "Paused" in status:
+                    ai_status.set("Paused")
+                elif "Simulating" in status or "Running" in status:
+                    ai_status.set("Simulating")
+                elif "Stopped" in status:
+                    ai_status.set("Stopped")
+            time.sleep(1)
+
+    threading.Thread(target=update_live_output, daemon=True).start()
+
+    # --------------------------------------------------------
+    # REFERENCES TABLE (original style, no borders)
+    # --------------------------------------------------------
+    references_frame = tk.Frame(window, bg="#1e1e2f")
+    references_frame.pack(pady=10)
 
     tk.Label(
-        footer_frame,
-        text="References:",
-        font=("Segoe UI", 10, "bold"),
+        references_frame,
+        text="References",
+        font=("Segoe UI", 12, "bold"),
         fg="#00ffff",
-        bg="#1e1e2f",
-        anchor="w"
-    ).grid(row=0, column=0, sticky="w", padx=10)
+        bg="#1e1e2f"
+    ).grid(row=0, column=0, columnspan=2, pady=(0, 6))
 
     tk.Label(
-        footer_frame,
-        text="GUI Folder: C:\\Users\\yerbr\\startup",
-        font=("Segoe UI", 9),
+        references_frame,
+        text="(1) GUI Folder:",
+        font=("Segoe UI", 10),
         fg="#aaaaaa",
         bg="#1e1e2f",
         anchor="w"
-    ).grid(row=1, column=0, sticky="w", padx=10)
+    ).grid(row=1, column=0, sticky="w", padx=(10, 5))
+    tk.Label(
+        references_frame,
+        text="C:/Users/yerbr/startup",
+        font=("Segoe UI", 10),
+        fg="#ffffff",
+        bg="#1e1e2f",
+        anchor="w"
+    ).grid(row=1, column=1, sticky="w")
 
     tk.Label(
-        footer_frame,
-        text="AI Module: C:\\Users\\yerbr\\AI_Algorithms\\public_mirror\\AI_Activities_in_Progress.py",
-        font=("Segoe UI", 9),
+        references_frame,
+        text="(2) AI Activities Module:",
+        font=("Segoe UI", 10),
         fg="#aaaaaa",
         bg="#1e1e2f",
         anchor="w"
-    ).grid(row=2, column=0, sticky="w", padx=10)
+    ).grid(row=2, column=0, sticky="w", padx=(10, 5))
+    tk.Label(
+        references_frame,
+        text="AI_Activities_Start_Safely_Stop.py",
+        font=("Segoe UI", 10),
+        fg="#ffffff",
+        bg="#1e1e2f",
+        anchor="w"
+    ).grid(row=2, column=1, sticky="w")
 
     window.mainloop()
 
-
+# ------------------------------------------------------------
+# MAIN ENTRY POINT
+# ------------------------------------------------------------
 if __name__ == "__main__":
     launch_gui()
